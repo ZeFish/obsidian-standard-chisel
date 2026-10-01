@@ -248,6 +248,7 @@ var require_echo = __commonJS({
         this.plugin = plugin;
         if (!plugin.settings.echo) plugin.settings.echo = { logPaths: [""] };
         this.settings = plugin.settings.echo;
+        this.parseCache = /* @__PURE__ */ new Map();
       }
       async load() {
         this.plugin.registerMarkdownCodeBlockProcessor(
@@ -277,16 +278,22 @@ var require_echo = __commonJS({
         const logPaths = (this.settings.logPaths || [""]).map(normalizePath);
         const allFiles = this.app.vault.getMarkdownFiles();
         const candidates = allFiles.filter((f) => isInLogPath(f, logPaths));
+        const wanted = "#" + opts.tag;
         let entries = [];
+        let i = 0;
         for (const file of candidates) {
           const date = extractDate(file.basename);
           if (!date) continue;
-          const content = await this.app.vault.read(file);
-          const parsed = parseNote(content, date, file.path, opts.separator);
+          const tags = this.app.metadataCache.getFileCache(file)?.tags;
+          if (tags && !tags.some((t) => t.tag === wanted || t.tag.startsWith(wanted + "/"))) {
+            continue;
+          }
+          const parsed = await this.getParsedEntries(file, date, opts.separator);
           const matching = parsed.filter(
             (e) => e.tag === opts.tag || e.tag.startsWith(opts.tag + "/")
           );
           entries.push(...matching);
+          if (++i % 25 === 0) await new Promise((r) => setTimeout(r, 0));
         }
         entries.sort((a, b) => {
           const aKey = `${a.date}${a.time}`;
@@ -306,6 +313,15 @@ var require_echo = __commonJS({
         for (const entry of entries) {
           this.renderEntry(container, entry, opts, vaultName);
         }
+      }
+      async getParsedEntries(file, date, separator) {
+        const stamp = `${file.stat?.mtime ?? 0}:${file.stat?.size ?? 0}:${separator}`;
+        const hit = this.parseCache.get(file.path);
+        if (hit && hit.stamp === stamp) return hit.entries;
+        const content = await this.app.vault.cachedRead(file);
+        const entries = parseNote(content, date, file.path, separator);
+        this.parseCache.set(file.path, { stamp, entries });
+        return entries;
       }
       renderEntry(container, entry, opts, vaultName) {
         const entryEl = container.createEl("div", { cls: "echo-entry" });
@@ -2366,6 +2382,13 @@ var require_snippet_manager = __commonJS({
         this.lastLocalCss = null;
         this.rescanTimeout = null;
         this.saveTimeout = null;
+        this.localTimeout = null;
+        this.localRun = 0;
+        this.localSources = /* @__PURE__ */ new Set();
+        this.globalPaths = /* @__PURE__ */ new Set();
+        this.localCssCache = /* @__PURE__ */ new Map();
+        this.globalCssCache = /* @__PURE__ */ new Map();
+        this.fontDirChecked = false;
       }
       getPluginDir() {
         return this.plugin.manifest?.dir || `${this.app.vault.configDir}/plugins/${this.plugin.manifest.id}`;
@@ -2389,15 +2412,24 @@ var require_snippet_manager = __commonJS({
         }
         this.plugin.registerEvent(
           this.app.metadataCache.on("changed", (file) => {
-            const active = this.app.workspace.getActiveFile();
-            if (active) this.applyLocalForFile(active);
-            this.scheduleGlobalRescan();
+            if (this.affectsLocal(file)) this.scheduleLocalRefresh();
+            if (this.affectsGlobal(file)) this.scheduleGlobalRescan();
           })
         );
         this.plugin.registerEvent(
           this.app.vault.on("modify", (file) => {
-            const active = this.app.workspace.getActiveFile();
-            if (active) this.applyLocalForFile(active);
+            if (this.affectsLocal(file)) this.scheduleLocalRefresh();
+          })
+        );
+        this.plugin.registerEvent(
+          this.app.vault.on("delete", (file) => {
+            if (this.globalPaths.has(file.path)) this.scheduleGlobalRescan();
+          })
+        );
+        this.plugin.registerEvent(
+          this.app.vault.on("rename", (file, oldPath) => {
+            if (this.globalPaths.has(oldPath) || this.globalPaths.has(file.path))
+              this.scheduleGlobalRescan();
           })
         );
         this.plugin.registerEvent(
@@ -2474,6 +2506,8 @@ var require_snippet_manager = __commonJS({
       async unload() {
         if (this.rescanTimeout) clearTimeout(this.rescanTimeout);
         if (this.saveTimeout) clearTimeout(this.saveTimeout);
+        if (this.localTimeout) clearTimeout(this.localTimeout);
+        this.localRun++;
         this.globalElement?.remove();
         this.noteElement?.remove();
         this.globalElement = null;
@@ -2481,6 +2515,25 @@ var require_snippet_manager = __commonJS({
       }
       fileHasGlobalKey(frontmatter) {
         return Boolean(frontmatter && frontmatter[this.settings.globalKey]);
+      }
+      affectsLocal(file) {
+        if (!file?.path) return false;
+        const active = this.app.workspace.getActiveFile();
+        return active && active.path === file.path || this.localSources.has(file.path);
+      }
+      affectsGlobal(file) {
+        if (!file?.path) return false;
+        if (this.globalPaths.has(file.path)) return true;
+        if (this.isFileExcluded(file)) return false;
+        const meta = this.app.metadataCache.getFileCache(file);
+        return this.fileHasGlobalKey(meta?.frontmatter);
+      }
+      scheduleLocalRefresh(delay = 100) {
+        if (this.localTimeout) clearTimeout(this.localTimeout);
+        this.localTimeout = setTimeout(() => {
+          const active = this.app.workspace.getActiveFile();
+          if (active) this.applyLocalForFile(active);
+        }, delay);
       }
       // ─── Global (vault-wide) snippets ─────────────────────────────────────────
       scheduleGlobalRescan(delay = 1e3) {
@@ -2500,7 +2553,10 @@ var require_snippet_manager = __commonJS({
           return this.fileHasGlobalKey(meta?.frontmatter);
         }).sort((a, b) => a.path.localeCompare(b.path));
         const signature = globalFiles.map((f) => `${f.path}:${f.stat?.mtime ?? 0}`).join("|");
+        this.globalPaths = new Set(globalFiles.map((f) => f.path));
         if (signature === this.settings.globalSignature && this.lastGlobalCss) {
+          if (this.fontDirChecked) return;
+          this.fontDirChecked = true;
           const fontDir = `${this.getPluginDir()}/fonts`;
           try {
             const listed = await this.app.vault.adapter.list(fontDir);
@@ -2512,11 +2568,18 @@ var require_snippet_manager = __commonJS({
         let allCss = "";
         for (const file of globalFiles) {
           try {
-            const css = await this.extractCssFromFile(file);
-            if (css && css.trim()) {
-              const processed = await this.offloadFonts(css);
-              allCss += processed + "\n";
+            const stamp = `${file.stat?.mtime ?? 0}:${file.stat?.size ?? 0}`;
+            let processed;
+            const hit = this.globalCssCache.get(file.path);
+            if (hit && hit.stamp === stamp) {
+              processed = hit.css;
+            } else {
+              const css = await this.extractCssFromFile(file);
+              processed = css && css.trim() ? await this.offloadFonts(css) : "";
+              this.globalCssCache.set(file.path, { stamp, css: processed });
+              await new Promise((r) => setTimeout(r, 0));
             }
+            if (processed) allCss += processed + "\n";
           } catch (e) {
             console.warn(`[Atelier] Error reading global snippet ${file.path}:`, e);
           }
@@ -2647,18 +2710,34 @@ var require_snippet_manager = __commonJS({
           this.clearLocalSnippet();
           return;
         }
+        const run = ++this.localRun;
         const files = this.app.vault.getMarkdownFiles();
+        const sources = /* @__PURE__ */ new Set();
         let allCss = "";
         for (const name of names) {
           const file = files.find((f) => f.basename === name);
           if (file && !this.isFileExcluded(file)) {
+            sources.add(file.path);
             if (Platform2.isMobile && file.stat?.size && file.stat.size > 500 * 1024) {
               console.warn(`[Standard] Snippet local ignor\xE9 sur mobile car trop volumineux : ${file.path}`);
               continue;
             }
-            allCss += await this.extractCssFromFile(file) + "\n";
+            const stamp = `${file.stat?.mtime ?? 0}:${file.stat?.size ?? 0}`;
+            const hit = this.localCssCache.get(file.path);
+            let css;
+            if (hit && hit.stamp === stamp) {
+              css = hit.css;
+            } else {
+              css = await this.extractCssFromFile(file);
+              if (css.length <= 256 * 1024) {
+                this.localCssCache.set(file.path, { stamp, css });
+              }
+            }
+            allCss += css + "\n";
           }
+          if (run !== this.localRun) return;
         }
+        this.localSources = sources;
         if (allCss !== this.lastLocalCss) {
           this.lastLocalCss = allCss;
           if (this.noteElement)
@@ -2666,12 +2745,14 @@ var require_snippet_manager = __commonJS({
         }
       }
       clearLocalSnippet() {
+        this.localRun++;
+        this.localSources = /* @__PURE__ */ new Set();
         this.lastLocalCss = null;
         if (this.noteElement) this.noteElement.textContent = "";
       }
       async extractCssFromFile(file) {
         try {
-          const content = await this.app.vault.read(file);
+          const content = await this.app.vault.cachedRead(file);
           const regex = /```css\b.*?\n([\s\S]*?)```/gi;
           return [...content.matchAll(regex)].map((m) => m[1]).join("\n");
         } catch (e) {
@@ -2815,17 +2896,32 @@ var require_daily_nav = __commonJS({
         }
         this.settings = plugin.settings.dailyNav;
         this.refresh = this.refresh.bind(this);
+        this.scheduleRefresh = this.scheduleRefresh.bind(this);
+        this.refreshTimeout = null;
+        this.sorted = null;
       }
       async load() {
-        this.plugin.registerEvent(this.app.workspace.on("active-leaf-change", this.refresh));
-        this.plugin.registerEvent(this.app.workspace.on("layout-change", this.refresh));
-        this.plugin.registerEvent(this.app.metadataCache.on("changed", this.refresh));
-        this.plugin.registerEvent(this.app.vault.on("create", this.refresh));
-        this.plugin.registerEvent(this.app.vault.on("delete", this.refresh));
+        this.plugin.registerEvent(this.app.workspace.on("active-leaf-change", this.scheduleRefresh));
+        this.plugin.registerEvent(this.app.workspace.on("layout-change", this.scheduleRefresh));
+        const onFileSet = () => {
+          this.sorted = null;
+          this.scheduleRefresh();
+        };
+        this.plugin.registerEvent(this.app.vault.on("create", onFileSet));
+        this.plugin.registerEvent(this.app.vault.on("delete", onFileSet));
+        this.plugin.registerEvent(this.app.vault.on("rename", onFileSet));
         this.app.workspace.onLayoutReady(this.refresh);
       }
       async unload() {
+        if (this.refreshTimeout) clearTimeout(this.refreshTimeout);
         this.cleanupAll();
+      }
+      // Coalesce bursts of events into one refresh; stay idle until the layout is
+      // ready (vault "create" fires for every file during the initial scan).
+      scheduleRefresh() {
+        if (!this.app.workspace.layoutReady) return;
+        if (this.refreshTimeout) clearTimeout(this.refreshTimeout);
+        this.refreshTimeout = setTimeout(this.refresh, 150);
       }
       cleanupAll() {
         this.app.workspace.getLeavesOfType("markdown").forEach((leaf) => {
@@ -2865,6 +2961,8 @@ var require_daily_nav = __commonJS({
       }
       // Find all daily notes in the vault and sort them chronologically
       getSortedDailyNotes(format, folder) {
+        const key = `${format}|${folder}`;
+        if (this.sorted && this.sorted.key === key) return this.sorted.list;
         const files = this.app.vault.getMarkdownFiles();
         const moment = window.moment;
         const dailyNotes = [];
@@ -2880,7 +2978,9 @@ var require_daily_nav = __commonJS({
             });
           }
         }
-        return dailyNotes.sort((a, b) => a.date.valueOf() - b.date.valueOf());
+        dailyNotes.sort((a, b) => a.date.valueOf() - b.date.valueOf());
+        this.sorted = { key, list: dailyNotes };
+        return dailyNotes;
       }
       refresh() {
         if (!this.settings.enabled) {
@@ -3941,6 +4041,7 @@ var require_base64_fold = __commonJS({
               if (processedLines.has(l)) continue;
               processedLines.add(l);
               const line = view.state.doc.line(l);
+              if (line.length <= 100) continue;
               regex.lastIndex = 0;
               let match;
               while ((match = regex.exec(line.text)) !== null) {
@@ -3996,6 +4097,7 @@ var require_base64_fold = __commonJS({
           this.plugin.registerMarkdownPostProcessor((el, ctx) => {
             const codeBlocks = el.querySelectorAll("code");
             codeBlocks.forEach((codeEl) => {
+              if (!codeEl.textContent.includes("base64,")) return;
               const walker = document.createTreeWalker(
                 codeEl,
                 NodeFilter.SHOW_TEXT,
@@ -4008,16 +4110,26 @@ var require_base64_fold = __commonJS({
                 textNodes.push(node);
               }
               if (textNodes.length === 0) return;
-              let fullText = "";
-              const nodeMap = [];
+              const parts = [];
+              const starts = [];
+              let total = 0;
               for (let i = 0; i < textNodes.length; i++) {
-                const tNode = textNodes[i];
-                const text = tNode.nodeValue;
-                for (let j = 0; j < text.length; j++) {
-                  nodeMap.push({ node: tNode, offset: j });
-                }
-                fullText += text;
+                const text = textNodes[i].nodeValue;
+                starts.push(total);
+                parts.push(text);
+                total += text.length;
               }
+              const fullText = parts.join("");
+              const locate = (idx) => {
+                let lo = 0;
+                let hi = starts.length - 1;
+                while (lo < hi) {
+                  const mid = lo + hi + 1 >> 1;
+                  if (starts[mid] <= idx) lo = mid;
+                  else hi = mid - 1;
+                }
+                return { node: textNodes[lo], offset: idx - starts[lo], index: lo };
+              };
               const regex = new RegExp(base64UrlRegex.source, "g");
               let match;
               const matches = [];
@@ -4033,8 +4145,8 @@ var require_base64_fold = __commonJS({
                 }
               }
               for (const m of matches) {
-                const startMap = nodeMap[m.start];
-                const endMap = nodeMap[m.end - 1];
+                const startMap = locate(m.start);
+                const endMap = locate(m.end - 1);
                 if (startMap.node === endMap.node) {
                   const textNode = startMap.node;
                   const text = textNode.nodeValue;
@@ -4044,11 +4156,14 @@ var require_base64_fold = __commonJS({
                   span.className = "atelier-base64-fold";
                   span.textContent = `"[Base64 Data: ${m.dataLength} chars]"`;
                   span.title = "Base64 data folded for performance";
-                  const fragment = document.createDocumentFragment();
-                  if (before) fragment.appendChild(document.createTextNode(before));
-                  fragment.appendChild(span);
-                  if (after) fragment.appendChild(document.createTextNode(after));
-                  textNode.parentNode.replaceChild(fragment, textNode);
+                  textNode.nodeValue = before;
+                  textNode.parentNode.insertBefore(span, textNode.nextSibling);
+                  if (after) {
+                    textNode.parentNode.insertBefore(
+                      document.createTextNode(after),
+                      span.nextSibling
+                    );
+                  }
                 } else {
                   const startNode = startMap.node;
                   startNode.nodeValue = startNode.nodeValue.substring(
@@ -4060,8 +4175,8 @@ var require_base64_fold = __commonJS({
                   span.textContent = `"[Base64 Data: ${m.dataLength} chars]"`;
                   span.title = "Base64 data folded for performance";
                   startNode.parentNode.insertBefore(span, startNode.nextSibling);
-                  let currentNodeIndex = textNodes.indexOf(startNode) + 1;
-                  const endNodeIndex = textNodes.indexOf(endMap.node);
+                  let currentNodeIndex = startMap.index + 1;
+                  const endNodeIndex = endMap.index;
                   while (currentNodeIndex < endNodeIndex) {
                     const nodeToRemove = textNodes[currentNodeIndex];
                     if (nodeToRemove.parentNode)

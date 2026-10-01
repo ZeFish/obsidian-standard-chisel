@@ -52,6 +52,17 @@ class SnippetManagerFeature {
     this.lastLocalCss = null;
     this.rescanTimeout = null;
     this.saveTimeout = null;
+    this.localTimeout = null;
+
+    // Work-avoidance state. metadataCache "changed" fires once per file while
+    // Obsidian indexes / syncs (thousands of times on a phone), so every handler
+    // below must be O(1) unless the changed file actually matters to us.
+    this.localRun = 0; // generation counter: a newer run supersedes older ones
+    this.localSources = new Set(); // paths feeding the active note's local CSS
+    this.globalPaths = new Set(); // paths that carried the global key last scan
+    this.localCssCache = new Map(); // path -> { stamp, css }
+    this.globalCssCache = new Map(); // path -> { stamp, css } (fonts offloaded)
+    this.fontDirChecked = false;
   }
 
   getPluginDir() {
@@ -88,23 +99,32 @@ class SnippetManagerFeature {
       this.loadCacheFromFile();
     }
 
-    // Refresh local snippets for the changed file; schedule a global rescan.
+    // Only react to files that can change the result: the active note, a
+    // snippet feeding it, or a note that carries (or just gained) the global key.
     this.plugin.registerEvent(
       this.app.metadataCache.on("changed", (file) => {
-        // Refresh local snippets of active note regardless of which file changed
-        // (the changed file might be a snippet listed in the active note).
-        const active = this.app.workspace.getActiveFile();
-        if (active) this.applyLocalForFile(active);
-
-        this.scheduleGlobalRescan();
+        if (this.affectsLocal(file)) this.scheduleLocalRefresh();
+        if (this.affectsGlobal(file)) this.scheduleGlobalRescan();
       }),
     );
 
     // Fast path for editing snippets
     this.plugin.registerEvent(
       this.app.vault.on("modify", (file) => {
-        const active = this.app.workspace.getActiveFile();
-        if (active) this.applyLocalForFile(active);
+        if (this.affectsLocal(file)) this.scheduleLocalRefresh();
+      }),
+    );
+
+    // A snippet note disappearing or moving changes the global set.
+    this.plugin.registerEvent(
+      this.app.vault.on("delete", (file) => {
+        if (this.globalPaths.has(file.path)) this.scheduleGlobalRescan();
+      }),
+    );
+    this.plugin.registerEvent(
+      this.app.vault.on("rename", (file, oldPath) => {
+        if (this.globalPaths.has(oldPath) || this.globalPaths.has(file.path))
+          this.scheduleGlobalRescan();
       }),
     );
 
@@ -196,6 +216,8 @@ class SnippetManagerFeature {
   async unload() {
     if (this.rescanTimeout) clearTimeout(this.rescanTimeout);
     if (this.saveTimeout) clearTimeout(this.saveTimeout);
+    if (this.localTimeout) clearTimeout(this.localTimeout);
+    this.localRun++;
     this.globalElement?.remove();
     this.noteElement?.remove();
     this.globalElement = null;
@@ -204,6 +226,30 @@ class SnippetManagerFeature {
 
   fileHasGlobalKey(frontmatter) {
     return Boolean(frontmatter && frontmatter[this.settings.globalKey]);
+  }
+
+  affectsLocal(file) {
+    if (!file?.path) return false;
+    const active = this.app.workspace.getActiveFile();
+    return (
+      (active && active.path === file.path) || this.localSources.has(file.path)
+    );
+  }
+
+  affectsGlobal(file) {
+    if (!file?.path) return false;
+    if (this.globalPaths.has(file.path)) return true; // may have lost the key
+    if (this.isFileExcluded(file)) return false;
+    const meta = this.app.metadataCache.getFileCache(file);
+    return this.fileHasGlobalKey(meta?.frontmatter);
+  }
+
+  scheduleLocalRefresh(delay = 100) {
+    if (this.localTimeout) clearTimeout(this.localTimeout);
+    this.localTimeout = setTimeout(() => {
+      const active = this.app.workspace.getActiveFile();
+      if (active) this.applyLocalForFile(active);
+    }, delay);
   }
 
   // ─── Global (vault-wide) snippets ─────────────────────────────────────────
@@ -233,8 +279,14 @@ class SnippetManagerFeature {
     const signature = globalFiles
       .map((f) => `${f.path}:${f.stat?.mtime ?? 0}`)
       .join("|");
+    this.globalPaths = new Set(globalFiles.map((f) => f.path));
+
     if (signature === this.settings.globalSignature && this.lastGlobalCss) {
-      // Si la signature n'a pas changé ET que le dossier fonts contient des fichiers, rien à faire
+      // Signature inchangée : rien à refaire, sauf si le dossier fonts est vide
+      // (ex: mobile, où il n'est pas synchronisé). Vérifié UNE fois par session,
+      // sinon chaque événement relit tous les snippets pour rien.
+      if (this.fontDirChecked) return;
+      this.fontDirChecked = true;
       const fontDir = `${this.getPluginDir()}/fonts`;
       try {
         const listed = await this.app.vault.adapter.list(fontDir);
@@ -247,12 +299,21 @@ class SnippetManagerFeature {
     let allCss = "";
     for (const file of globalFiles) {
       try {
-        const css = await this.extractCssFromFile(file);
-        if (css && css.trim()) {
-          // Découper les polices au fil de l'eau fichier par fichier (ultra-rapide, garde la mémoire basse)
-          const processed = await this.offloadFonts(css);
-          allCss += processed + "\n";
+        const stamp = `${file.stat?.mtime ?? 0}:${file.stat?.size ?? 0}`;
+        let processed;
+        const hit = this.globalCssCache.get(file.path);
+        if (hit && hit.stamp === stamp) {
+          processed = hit.css;
+        } else {
+          const css = await this.extractCssFromFile(file);
+          // Découper les polices au fil de l'eau fichier par fichier (garde la mémoire basse).
+          // On ne garde en cache que le résultat (placeholders), jamais le base64 brut.
+          processed = css && css.trim() ? await this.offloadFonts(css) : "";
+          this.globalCssCache.set(file.path, { stamp, css: processed });
+          // Laisse respirer le thread / le GC entre deux gros fichiers.
+          await new Promise((r) => setTimeout(r, 0));
         }
+        if (processed) allCss += processed + "\n";
       } catch (e) {
         console.warn(`[Atelier] Error reading global snippet ${file.path}:`, e);
       }
@@ -422,18 +483,36 @@ class SnippetManagerFeature {
       return;
     }
 
+    const run = ++this.localRun;
     const files = this.app.vault.getMarkdownFiles();
+    const sources = new Set();
     let allCss = "";
     for (const name of names) {
       const file = files.find((f) => f.basename === name);
       if (file && !this.isFileExcluded(file)) {
+        sources.add(file.path);
         if (Platform.isMobile && file.stat?.size && file.stat.size > 500 * 1024) {
           console.warn(`[Standard] Snippet local ignoré sur mobile car trop volumineux : ${file.path}`);
           continue;
         }
-        allCss += (await this.extractCssFromFile(file)) + "\n";
+        const stamp = `${file.stat?.mtime ?? 0}:${file.stat?.size ?? 0}`;
+        const hit = this.localCssCache.get(file.path);
+        let css;
+        if (hit && hit.stamp === stamp) {
+          css = hit.css;
+        } else {
+          css = await this.extractCssFromFile(file);
+          // Pas de cache pour un gros bloc (ex: base64 inline) : on ne retient pas des Mo.
+          if (css.length <= 256 * 1024) {
+            this.localCssCache.set(file.path, { stamp, css });
+          }
+        }
+        allCss += css + "\n";
       }
+      // Une exécution plus récente a pris la main pendant la lecture : on abandonne.
+      if (run !== this.localRun) return;
     }
+    this.localSources = sources;
 
     if (allCss !== this.lastLocalCss) {
       this.lastLocalCss = allCss;
@@ -443,13 +522,15 @@ class SnippetManagerFeature {
   }
 
   clearLocalSnippet() {
+    this.localRun++;
+    this.localSources = new Set();
     this.lastLocalCss = null;
     if (this.noteElement) this.noteElement.textContent = "";
   }
 
   async extractCssFromFile(file) {
     try {
-      const content = await this.app.vault.read(file);
+      const content = await this.app.vault.cachedRead(file);
       // Improved regex: handles trailing spaces, optional carriage returns, and multiple blocks
       const regex = /```css\b.*?\n([\s\S]*?)```/gi;
       return [...content.matchAll(regex)].map((m) => m[1]).join("\n");

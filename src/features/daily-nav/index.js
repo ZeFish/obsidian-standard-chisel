@@ -12,22 +12,41 @@ class DailyNavFeature {
     }
     this.settings = plugin.settings.dailyNav;
     this.refresh = this.refresh.bind(this);
+    this.scheduleRefresh = this.scheduleRefresh.bind(this);
+    this.refreshTimeout = null;
+    this.sorted = null; // { key, list } — invalidated when the file set changes
   }
 
   async load() {
-    this.plugin.registerEvent(this.app.workspace.on("active-leaf-change", this.refresh));
-    this.plugin.registerEvent(this.app.workspace.on("layout-change", this.refresh));
-    
-    // Refresh when files are changed, created, or deleted so sequence updates
-    this.plugin.registerEvent(this.app.metadataCache.on("changed", this.refresh));
-    this.plugin.registerEvent(this.app.vault.on("create", this.refresh));
-    this.plugin.registerEvent(this.app.vault.on("delete", this.refresh));
+    this.plugin.registerEvent(this.app.workspace.on("active-leaf-change", this.scheduleRefresh));
+    this.plugin.registerEvent(this.app.workspace.on("layout-change", this.scheduleRefresh));
+
+    // The previous/next sequence only depends on which files exist and what
+    // they are called, so watch the file set — NOT metadataCache "changed",
+    // which fires once per file while Obsidian indexes (thousands of times on
+    // mobile) and made every event re-parse the whole Logs folder with moment.
+    const onFileSet = () => {
+      this.sorted = null;
+      this.scheduleRefresh();
+    };
+    this.plugin.registerEvent(this.app.vault.on("create", onFileSet));
+    this.plugin.registerEvent(this.app.vault.on("delete", onFileSet));
+    this.plugin.registerEvent(this.app.vault.on("rename", onFileSet));
 
     this.app.workspace.onLayoutReady(this.refresh);
   }
 
   async unload() {
+    if (this.refreshTimeout) clearTimeout(this.refreshTimeout);
     this.cleanupAll();
+  }
+
+  // Coalesce bursts of events into one refresh; stay idle until the layout is
+  // ready (vault "create" fires for every file during the initial scan).
+  scheduleRefresh() {
+    if (!this.app.workspace.layoutReady) return;
+    if (this.refreshTimeout) clearTimeout(this.refreshTimeout);
+    this.refreshTimeout = setTimeout(this.refresh, 150);
   }
 
   cleanupAll() {
@@ -73,6 +92,9 @@ class DailyNavFeature {
 
   // Find all daily notes in the vault and sort them chronologically
   getSortedDailyNotes(format, folder) {
+    const key = `${format}|${folder}`;
+    if (this.sorted && this.sorted.key === key) return this.sorted.list;
+
     const files = this.app.vault.getMarkdownFiles();
     const moment = window.moment;
     const dailyNotes = [];
@@ -90,7 +112,9 @@ class DailyNavFeature {
       }
     }
 
-    return dailyNotes.sort((a, b) => a.date.valueOf() - b.date.valueOf());
+    dailyNotes.sort((a, b) => a.date.valueOf() - b.date.valueOf());
+    this.sorted = { key, list: dailyNotes };
+    return dailyNotes;
   }
 
   refresh() {

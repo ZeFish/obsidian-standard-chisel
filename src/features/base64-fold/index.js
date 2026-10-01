@@ -53,6 +53,9 @@ const base64FoldPlugin = ViewPlugin.fromClass(
           processedLines.add(l);
 
           const line = view.state.doc.line(l);
+          // A foldable payload is >100 chars: skip short lines without ever
+          // materialising their text.
+          if (line.length <= 100) continue;
           regex.lastIndex = 0;
           let match;
 
@@ -125,6 +128,7 @@ class Base64FoldFeature {
         const codeBlocks = el.querySelectorAll("code");
 
         codeBlocks.forEach((codeEl) => {
+          if (!codeEl.textContent.includes("base64,")) return;
           // Obsidian's syntax highlighter (Prism) splits long base64 strings into multiple
           // <span class="token string"> elements, sometimes even chopping them arbitrarily.
           // A simple regex on innerHTML fails if there are tags in the middle of the string.
@@ -144,18 +148,31 @@ class Base64FoldFeature {
 
           if (textNodes.length === 0) return;
 
-          // 2. Build a continuous string and a mapping back to the original text nodes
-          let fullText = "";
-          const nodeMap = []; // Maps character index in fullText to { node, offsetInNode }
-
+          // 2. Build a continuous string plus ONE start offset per text node.
+          // (A per-character map allocated millions of objects for a large
+          // base64 block — enough to exhaust memory on a phone.)
+          const parts = [];
+          const starts = [];
+          let total = 0;
           for (let i = 0; i < textNodes.length; i++) {
-            const tNode = textNodes[i];
-            const text = tNode.nodeValue;
-            for (let j = 0; j < text.length; j++) {
-              nodeMap.push({ node: tNode, offset: j });
-            }
-            fullText += text;
+            const text = textNodes[i].nodeValue;
+            starts.push(total);
+            parts.push(text);
+            total += text.length;
           }
+          const fullText = parts.join("");
+
+          // Binary search: which text node holds character `idx`?
+          const locate = (idx) => {
+            let lo = 0;
+            let hi = starts.length - 1;
+            while (lo < hi) {
+              const mid = (lo + hi + 1) >> 1;
+              if (starts[mid] <= idx) lo = mid;
+              else hi = mid - 1;
+            }
+            return { node: textNodes[lo], offset: idx - starts[lo], index: lo };
+          };
 
           // 3. Find base64 strings in the continuous text
           const regex = new RegExp(base64UrlRegex.source, "g");
@@ -174,8 +191,8 @@ class Base64FoldFeature {
 
           // 4. Surgically replace the matched text across multiple nodes
           for (const m of matches) {
-            const startMap = nodeMap[m.start];
-            const endMap = nodeMap[m.end - 1]; // -1 because m.end is exclusive boundary
+            const startMap = locate(m.start);
+            const endMap = locate(m.end - 1); // -1 because m.end is exclusive boundary
 
             if (startMap.node === endMap.node) {
               // Simple case: The whole base64 string is inside a single text node
@@ -190,12 +207,18 @@ class Base64FoldFeature {
               span.textContent = `"[Base64 Data: ${m.dataLength} chars]"`;
               span.title = "Base64 data folded for performance";
 
-              const fragment = document.createDocumentFragment();
-              if (before) fragment.appendChild(document.createTextNode(before));
-              fragment.appendChild(span);
-              if (after) fragment.appendChild(document.createTextNode(after));
-
-              textNode.parentNode.replaceChild(fragment, textNode);
+              // Keep the original node as the left piece instead of replacing
+              // it: matches are processed right-to-left, so an earlier match in
+              // the same node must still find its node attached and its offsets
+              // valid.
+              textNode.nodeValue = before;
+              textNode.parentNode.insertBefore(span, textNode.nextSibling);
+              if (after) {
+                textNode.parentNode.insertBefore(
+                  document.createTextNode(after),
+                  span.nextSibling,
+                );
+              }
             } else {
               // Complex case: The string spans multiple nodes
 
@@ -214,8 +237,8 @@ class Base64FoldFeature {
               startNode.parentNode.insertBefore(span, startNode.nextSibling);
 
               // C. Delete all intermediate nodes entirely
-              let currentNodeIndex = textNodes.indexOf(startNode) + 1;
-              const endNodeIndex = textNodes.indexOf(endMap.node);
+              let currentNodeIndex = startMap.index + 1;
+              const endNodeIndex = endMap.index;
 
               while (currentNodeIndex < endNodeIndex) {
                 const nodeToRemove = textNodes[currentNodeIndex];

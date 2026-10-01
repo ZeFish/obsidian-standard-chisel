@@ -113,10 +113,10 @@ body.stnd-eink-active .link-decoration-off .markdown-reading-view a {
 .garden_eink_font_weight_light .view-content > .cm-s-obsidian,
 .view-content > .markdown-source-view.mod-cm6.is-live-preview > .cm-scroller {
     font-weight: var(--font-light) !important;
-    /*--font-header-weight: var(--font-light) !important;*/
+    /*--font-weight-header: var(--font-light) !important;*/
 }
 .garden_eink_font_weight_light {
-    /*--font-header-weight: var(--font-light) !important;*/
+    /*--font-weight-header: var(--font-light) !important;*/
 }
 .garden_eink_font_weight_normal .markdown-preview-view,
 .garden_eink_font_weight_normal .view-content > .cm-s-obsidian,
@@ -124,7 +124,7 @@ body.stnd-eink-active .link-decoration-off .markdown-reading-view a {
     font-weight: var(--font-normal) !important;
 }
 .garden_eink_font_weight_normal {
-    /*--font-header-weight: var(--font-normal) !important;*/
+    /*--font-weight-header: var(--font-normal) !important;*/
 }
 .garden_eink_font_weight_medium .markdown-preview-view,
 .garden_eink_font_weight_medium .view-content > .cm-s-obsidian,
@@ -132,7 +132,7 @@ body.stnd-eink-active .link-decoration-off .markdown-reading-view a {
     font-weight: var(--font-medium) !important;
 }
 .garden_eink_font_weight_medium {
-    /*--font-header-weight: var(--font-medium) !important;*/
+    /*--font-weight-header: var(--font-medium) !important;*/
 }
 .garden_eink_font_weight_bold .markdown-preview-view,
 .garden_eink_font_weight_bold .view-content > .cm-s-obsidian,
@@ -140,7 +140,7 @@ body.stnd-eink-active .link-decoration-off .markdown-reading-view a {
     font-weight: var(--font-bold) !important;
 }
 .garden_eink_font_weight_bold {
-    /* --font-header-weight: var(--font-bold) !important;*/
+    /* --font-weight-header: var(--font-bold) !important;*/
 }
 /* ============================================= */
 /* Book Mode Part */

@@ -70,6 +70,9 @@ class EchoFeature {
     this.plugin = plugin;
     if (!plugin.settings.echo) plugin.settings.echo = { logPaths: [""] };
     this.settings = plugin.settings.echo;
+    // path -> { stamp, entries }: parsed entries per daily note, shared by every
+    // echo block so a page with several blocks doesn't re-read the whole log.
+    this.parseCache = new Map();
   }
 
   async load() {
@@ -103,17 +106,31 @@ class EchoFeature {
     const allFiles = this.app.vault.getMarkdownFiles();
     const candidates = allFiles.filter((f) => isInLogPath(f, logPaths));
 
+    const wanted = "#" + opts.tag;
     let entries = [];
+    let i = 0;
     for (const file of candidates) {
       const date = extractDate(file.basename);
       if (!date) continue;
 
-      const content = await this.app.vault.read(file);
-      const parsed = parseNote(content, date, file.path, opts.separator);
+      // The metadata cache already indexed the tags in headings: a note that is
+      // known to lack this tag needn't be read at all. (No cache yet → read it.)
+      const tags = this.app.metadataCache.getFileCache(file)?.tags;
+      if (
+        tags &&
+        !tags.some((t) => t.tag === wanted || t.tag.startsWith(wanted + "/"))
+      ) {
+        continue;
+      }
+
+      const parsed = await this.getParsedEntries(file, date, opts.separator);
       const matching = parsed.filter(
         (e) => e.tag === opts.tag || e.tag.startsWith(opts.tag + "/"),
       );
       entries.push(...matching);
+
+      // Let the UI / GC breathe on big logs.
+      if (++i % 25 === 0) await new Promise((r) => setTimeout(r, 0));
     }
 
     entries.sort((a, b) => {
@@ -139,6 +156,16 @@ class EchoFeature {
     for (const entry of entries) {
       this.renderEntry(container, entry, opts, vaultName);
     }
+  }
+
+  async getParsedEntries(file, date, separator) {
+    const stamp = `${file.stat?.mtime ?? 0}:${file.stat?.size ?? 0}:${separator}`;
+    const hit = this.parseCache.get(file.path);
+    if (hit && hit.stamp === stamp) return hit.entries;
+    const content = await this.app.vault.cachedRead(file);
+    const entries = parseNote(content, date, file.path, separator);
+    this.parseCache.set(file.path, { stamp, entries });
+    return entries;
   }
 
   renderEntry(container, entry, opts, vaultName) {
