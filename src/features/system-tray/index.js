@@ -2,7 +2,7 @@
 
 const obsidian = require("obsidian");
 const { PluginSettingTab, Setting, Platform } = obsidian;
-const { descWithLinks } = require("../../constants.js");
+const { descWithLinks, DOCS } = require("../../constants.js");
 
 
 // Node builtins and Electron are unavailable on mobile. Requiring them at the
@@ -328,15 +328,15 @@ class SystemTraySettingTab extends PluginSettingTab {
   display() {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", { text: "System Tray" });
+    new Setting(containerEl).setName("System tray").setHeading();
 
     const desc = containerEl.createEl("p", {
       text: "Keeps Obsidian running silently in the background when you close the main window. Instead of quitting, Obsidian hides to the system tray so your notes and sync tasks remain active. ",
       cls: "setting-item-description",
     });
     desc.createEl("a", {
-      text: "View System Tray Manual",
-      href: "https://stnd.build/3-archives/obsidian-plugin#9-system-tray",
+      text: "View the documentation",
+      href: DOCS.systemTray,
     });
 
     if (!Platform.isDesktop) {
@@ -348,10 +348,10 @@ class SystemTraySettingTab extends PluginSettingTab {
     }
 
     new Setting(containerEl)
-      .setName("System Tray")
+      .setName("System tray")
       .setDesc(descWithLinks(
         "Intercept the window close event and minimize Obsidian to the system tray instead of quitting. A tray icon lets you restore or fully quit at any time. § for platform-specific behavior.",
-        [{ text: "See System Tray guide", href: "https://stnd.build/3-archives/obsidian-plugin#9-system-tray" }]
+        [{ text: "See System Tray guide", href: DOCS.systemTray }]
       ))
       .addToggle((toggle) =>
         toggle.setValue(this.settings.enabled !== false).onChange(async (v) => {
@@ -377,7 +377,7 @@ class SystemTraySettingTab extends PluginSettingTab {
       .setName("Hide on launch")
       .setDesc(descWithLinks(
         "Launch Obsidian directly to the tray without showing the main window. § for the login item setup guide.",
-        [{ text: "See startup guide", href: "https://stnd.build/3-archives/obsidian-plugin#9-system-tray" }]
+        [{ text: "See startup guide", href: DOCS.systemTray }]
       ))
       .addToggle((toggle) =>
         toggle

@@ -2,7 +2,7 @@
 
 const { Plugin, MarkdownView, Setting, PluginSettingTab } = require("obsidian");
 
-const { descWithLinks } = require("../../constants.js");
+const { descWithLinks, DOCS } = require("../../constants.js");
 
 const DEFAULT_SETTINGS = {
   position: "right",
@@ -270,20 +270,20 @@ class ScrollMapSettingTab extends PluginSettingTab {
   display() {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", { text: "Scroll Map" });
+    new Setting(containerEl).setName("Scroll map").setHeading();
 
     const desc = containerEl.createEl("p", {
       text: "Renders an interactive outline map next to the editor scrollbar for quick document navigation. ",
       cls: "setting-item-description",
     });
     desc.createEl("a", {
-      text: "View Scroll Map Manual",
-      href: "https://stnd.build/3-archives/obsidian-plugin#6-scroll-map",
+      text: "View the documentation",
+      href: DOCS.scrollMap,
     });
 
     new Setting(containerEl)
       .setName("Scroll map position")
-      .setDesc(descWithLinks("Where the scroll map indicator appears in the editor. § for layout tips.", [{ text: "See positioning guide", href: "https://stnd.build/3-archives/obsidian-plugin#6-scroll-map" }]))
+      .setDesc(descWithLinks("Where the scroll map indicator appears in the editor. § for layout tips.", [{ text: "See positioning guide", href: DOCS.scrollMap }]))
       .addDropdown((dropdown) =>
         dropdown
           .addOptions({
@@ -304,7 +304,7 @@ class ScrollMapSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Scrollbar width")
-      .setDesc(descWithLinks("Visual thickness of the scroll indicator in pixels (1–10). § for visual examples.", [{ text: "See scroll map docs", href: "https://stnd.build/3-archives/obsidian-plugin#6-scroll-map" }]))
+      .setDesc(descWithLinks("Visual thickness of the scroll indicator in pixels (1–10). § for visual examples.", [{ text: "See scroll map docs", href: DOCS.scrollMap }]))
       .addSlider((slider) =>
         slider
           .setLimits(1, 10, 1)
@@ -322,7 +322,7 @@ class ScrollMapSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Opacity")
-      .setDesc(descWithLinks("Transparency of the indicator (0.1 = nearly invisible, 1 = fully opaque). § for recommended values.", [{ text: "See scroll map docs", href: "https://stnd.build/3-archives/obsidian-plugin#6-scroll-map" }]))
+      .setDesc(descWithLinks("Transparency of the indicator (0.1 = nearly invisible, 1 = fully opaque). § for recommended values.", [{ text: "See scroll map docs", href: DOCS.scrollMap }]))
       .addSlider((slider) =>
         slider
           .setLimits(0.1, 1, 0.1)
@@ -338,7 +338,7 @@ class ScrollMapSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Scroll map behavior")
-      .setDesc(descWithLinks("Map mode shows a positional indicator; Progress mode shows a reading completion gauge. § for a full comparison.", [{ text: "Compare behaviors", href: "https://stnd.build/3-archives/obsidian-plugin#6-scroll-map" }]))
+      .setDesc(descWithLinks("Map mode shows a positional indicator; Progress mode shows a reading completion gauge. § for a full comparison.", [{ text: "Compare behaviors", href: DOCS.scrollMap }]))
       .addDropdown((dropdown) =>
         dropdown
           .addOptions({

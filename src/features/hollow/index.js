@@ -193,7 +193,7 @@ class HollowSettingTab extends PluginSettingTab {
   display() {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", { text: "Hollow" });
+    new Setting(containerEl).setName("Hollow").setHeading();
 
     new Setting(containerEl).setName("Show ribbon icon").addToggle((toggle) =>
       toggle.setValue(this.settings.showRibbon).onChange(async (value) => {
@@ -205,7 +205,7 @@ class HollowSettingTab extends PluginSettingTab {
       }),
     );
 
-    containerEl.createEl("h3", { text: "Excluded folders" });
+    new Setting(containerEl).setName("Excluded folders").setHeading();
     containerEl.createEl("p", {
       text: "Hollow will skip notes inside these folders. Matches the folder name anywhere in the path.",
       cls: "setting-item-description",

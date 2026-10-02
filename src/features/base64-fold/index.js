@@ -1,6 +1,6 @@
 const { Decoration, ViewPlugin, WidgetType } = require("@codemirror/view");
 const { PluginSettingTab, Setting } = require("obsidian");
-const { descWithLinks } = require("../../constants.js");
+const { descWithLinks, DOCS } = require("../../constants.js");
 
 class Base64FoldWidget extends WidgetType {
   constructor(length) {
@@ -278,22 +278,22 @@ class Base64FoldSettingTab extends PluginSettingTab {
   display() {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", { text: "Base64 Fold" });
+    new Setting(containerEl).setName("Base64 fold").setHeading();
 
     const desc = containerEl.createEl("p", {
       text: "Automatically collapses long base64-encoded strings (images, fonts, binary data) in both the editor and reading view into a compact, expandable badge. Keeps your notes readable without losing the embedded data. ",
       cls: "setting-item-description",
     });
     desc.createEl("a", {
-      text: "View Base64 Fold Manual",
-      href: "https://stnd.build/3-archives/obsidian-plugin#10-base64-fold",
+      text: "View the documentation",
+      href: DOCS.base64,
     });
 
     new Setting(containerEl)
       .setName("Enable Base64 Fold")
       .setDesc(descWithLinks(
         "Fold base64 strings longer than 100 characters into a compact badge. Click the badge to reveal. § for folding details.",
-        [{ text: "See Base64 Fold docs", href: "https://stnd.build/3-archives/obsidian-plugin#10-base64-fold" }]
+        [{ text: "See Base64 Fold docs", href: DOCS.base64 }]
       ))
       .addToggle((t) =>
         t.setValue(this.settings.enabled !== false).onChange(async (v) => {

@@ -1,7 +1,7 @@
 "use strict";
 
 const { TFile, PluginSettingTab, Setting, Notice, TextComponent, ButtonComponent, Platform } = require("obsidian");
-const { descWithLinks } = require("../../constants.js");
+const { descWithLinks, DOCS } = require("../../constants.js");
 
 
 class VaultAuditFeature {
@@ -564,22 +564,22 @@ class MediaManagerSettingTab extends PluginSettingTab {
   display() {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", { text: "Media Manager" });
+    new Setting(containerEl).setName("Media").setHeading();
 
     const desc = containerEl.createEl("p", {
       text: "Automatically renames and moves pasted or dropped media assets to keep your vault organized. ",
       cls: "setting-item-description",
     });
     desc.createEl("a", {
-      text: "View Media Manager Manual",
-      href: "https://stnd.build/3-archives/obsidian-plugin#7-media-manager",
+      text: "View the documentation",
+      href: DOCS.media,
     });
 
     new Setting(containerEl)
       .setName("Smart rename attachments")
       .setDesc(descWithLinks(
         "Intercepts newly pasted or dropped media, generates a unique timestamp prefix, and moves them to the configured folder. § for the naming format.",
-        [{ text: "See Media Manager guide", href: "https://stnd.build/3-archives/obsidian-plugin#7-media-manager" }]
+        [{ text: "See Media Manager guide", href: DOCS.media }]
       ))
       .addToggle((toggle) =>
         toggle
@@ -630,7 +630,7 @@ class MediaManagerSettingTab extends PluginSettingTab {
       .setName("Storage folder")
       .setDesc(descWithLinks(
         "Vault folder where all managed media files are moved after rename. § for recommended folder structures.",
-        [{ text: "View setup guide", href: "https://stnd.build/3-archives/obsidian-plugin#7-media-manager" }]
+        [{ text: "View setup guide", href: DOCS.media }]
       ))
       .addText((text) => {
         text
@@ -651,8 +651,7 @@ class MediaManagerSettingTab extends PluginSettingTab {
       "background: var(--background-secondary); border: 1px solid var(--background-modifier-border);" +
       "border-radius: 10px; padding: 16px 20px 8px; margin: 16px 0;";
 
-    excludesSection.createEl("h3", { text: "Excluded folders" }).style.cssText =
-      "margin: 0 0 6px; font-size: var(--font-ui-medium);";
+    new Setting(excludesSection).setName("Excluded folders").setHeading();
     excludesSection.createEl("p", {
       text: "Ignore new media created in these folders.",
       cls: "setting-item-description"
@@ -717,7 +716,7 @@ class MediaManagerSettingTab extends PluginSettingTab {
       .setName("Timestamp format")
       .setDesc(descWithLinks(
         "Format used to prefix media filenames. § for a comparison of all available formats.",
-        [{ text: "See timestamp formats", href: "https://stnd.build/3-archives/obsidian-plugin#7-media-manager" }]
+        [{ text: "See timestamp formats", href: DOCS.media }]
       ))
       .addDropdown((dropdown) =>
         dropdown
@@ -735,7 +734,7 @@ class MediaManagerSettingTab extends PluginSettingTab {
       .setName("Timestamp exclusion regex")
       .setDesc(descWithLinks(
         "A regular expression used to detect if a file already carries a timestamp, preventing double-prefixing. § for regex syntax help.",
-        [{ text: "View exclusion docs", href: "https://stnd.build/3-archives/obsidian-plugin#7-media-manager" }]
+        [{ text: "View exclusion docs", href: DOCS.media }]
       ))
       .addText((text) =>
         text

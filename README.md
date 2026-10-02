@@ -8,35 +8,84 @@ Chisel is an artisan companion plugin for Obsidian designed for thoughtful knowl
 
 ---
 
-## ✨ Features
+## Features
 
-### 🖼️ Intelligent Media Manager
-Stop cluttering your vault with randomly dumped screenshots and attachments.
-- **Rule-Based Routing**: Route incoming media automatically to dedicated asset folders relative to each note or at a global vault root.
-- **Clean Naming & Slugification**: Transform clumsy filenames like `CleanShot 2026-09-20 at 11.23.45.png` into clean, human-readable slugs.
-- **Deduplication**: Automatically detects duplicate attachments using content hashes to prevent storage bloat.
-- **Mobile & Sync Friendly**: Carefully guarded against sync conflicts and mobile file-system lag.
+Chisel's settings are grouped in four places: **General**, **Reading**, **Writing** and **Vault**. Each feature below is a section in one of them.
 
-### 🎨 Snippets & Typography Engine
-Refine your vault's visual identity note by note.
-- **Note-Scoped Styling**: Dynamically apply styling rules and CSS snippets driven by frontmatter metadata (`cssclasses`, `theme`, or custom tags).
-- **Custom Font Offloader**: Embed and manage high-quality web fonts directly inside your vault with an optimized, lightweight base64 engine.
-- **Global CSS Cache**: Precompiles and persists stylesheets to `data.json` for lightning-fast startup on both desktop and mobile without recomputing heavy fonts.
+### Interface and Zen
+*Settings → Chisel → General*
 
-### 🧘 Zen Interface Manager
-Create a calm writing sanctuary whenever you need deep focus.
-- **Distraction-Free Canvas**: Instantly collapse sidebars, ribbon buttons, tab headers, and status bars with a single toggle or hotkey.
-- **Custom Chrome Rules**: Selectively show or hide individual Obsidian interface elements to tailor your ideal writing environment.
+- **Zen** hides the vault name, the file explorer header, the status bar and the tab header when only one tab is open, for a distraction-free canvas.
+- **Truncate long filenames** cuts long file and folder names in the explorer with an ellipsis instead of clipping them.
+- **Auto-hide sidebars** hides the sidebars and the ribbon until you hover near the edge of the screen.
+- **Default reading mode** opens notes in reading view when they say nothing else. Any note can choose its own view with a `mode` property in its frontmatter:
+  - `mode: read` opens it in reading view,
+  - `mode: edit` opens it in editing view,
+  - `mode: source` (or `raw`) opens it in source mode.
 
-### 📖 E-ink & Reader Optimization
-Built from experience for e-ink tablets (Onyx Boox, Supernote, Kindle Scribe, reMarkable).
-- **High-Contrast Reader**: Crisp monochromatic typography and ultra-sharp line rendering tuned specifically for grayscale e-ink displays.
-- **Zero-Latency Layouts**: Disables unnecessary visual animations and heavy blur effects to maximize responsiveness on e-paper screens.
+  The note's own `mode` always wins over the default. It is applied once, when the note opens, so switching view by hand is never undone.
+- **Focus last line on mobile** puts the cursor at the end of a note when it opens on a phone.
 
-### 🧭 Navigation & Workflow Essentials
-- **Daily Navigation**: Fast keyboard shortcuts to navigate back and forth through daily journal entries.
-- **Scroll Position Memory**: Preserves exact scroll states across pane switches and workspace reloads.
-- **Base64 Fold**: Neatly collapses long base64 embedded data in the editor so your markdown stays clean and readable.
+### System tray
+*Settings → Chisel → General (desktop only)*
+
+Keeps Obsidian running in the background when you close the main window: it hides to the system tray instead of quitting, so your notes and sync keep running. **Hide on launch** starts Obsidian hidden.
+
+### Scroll map
+*Settings → Chisel → Reading*
+
+An interactive outline next to the editor scrollbar for moving around a long note. Choose its position, width and opacity, and whether it shows a **map** of the document or a **progress** gauge.
+
+### Base64 fold
+*Settings → Chisel → Reading*
+
+Collapses long base64 strings (embedded images, fonts, binary data) into a compact, expandable badge in the editor and in reading view, so notes stay readable without losing the data.
+
+### E-ink and Boox
+*Settings → Chisel → Reading*
+
+High-contrast rendering for e-ink displays, with animations and blur disabled. Set it to **auto** (on a detected e-reader), **always**, or **disabled**. On Boox devices it can map the volume, page and arrow keys to scrolling, and adjust typography and layout for grayscale screens.
+
+### Snippets and typography
+*Settings → Chisel → Writing*
+
+Write CSS inside a note and have it applied live, without the hidden snippets folder. Chisel reads CSS code blocks from notes, registers them as global or note-scoped stylesheets (with a configurable frontmatter key, and the option to always use `cssclasses`), skips excluded folders, and caches the compiled result for fast startup on desktop and mobile. **Rebuild global cache** recompiles everything.
+
+### Media manager
+*Settings → Chisel → Writing*
+
+Tidies attachments as they arrive:
+- **Smart rename** turns names like `CleanShot 2026-09-20 at 11.23.45.png` into clean slugs, with a configurable timestamp format.
+- **Storage folder** routes media to a folder, relative to the note (for example `./assets` or `attachments/{note}`) or at the vault root.
+- **Only on paste or drop** limits it to media you actively paste or drop into a note, which avoids conflicts with Obsidian Sync.
+- **Enable on mobile devices** is off by default, to prevent sync collisions.
+- **Aggressive link repair** rewrites unresolved links after a rename. Obsidian already updates links on rename, so leave it off unless you need it.
+- Excluded folders are ignored.
+
+### Seedbeds
+*Settings → Chisel → Writing*
+
+Writes frontmatter for you. Define a folder and the properties it should have; when a note is created in, or moved to, that folder, Chisel adds those properties without overwriting any key the note already has. The command **Apply seedbed rules to current file** applies them on demand.
+
+### Daily notes navigation
+*Settings → Chisel → Writing*
+
+Two floating buttons at the bottom of a daily note to jump to the previous or next one. **Chronological** follows the daily notes that exist; **Calendar** steps through days one by one.
+
+### Live
+*Settings → Chisel → Vault*
+
+Opens the public version of the current note in your browser. Set the **base URL** of your site and an optional suffix for notes without a permalink. Use the command **Open public note** or the ribbon icon.
+
+### Echo
+*Settings → Chisel → Vault*
+
+Builds dynamic feeds from your log entries. Add the folders to scan (leave one empty to scan the whole vault) and use an `echo` code block in a note to list entries by tag.
+
+### Hollow
+*Settings → Chisel → Vault*
+
+Finds hollow notes: notes with nothing under their frontmatter. The command **Find hollow notes** (or the ribbon icon) lists them, and **Delete all** sends them to the system trash. Folders you add to **Excluded folders** are skipped.
 
 ---
 
@@ -63,14 +112,9 @@ Built from experience for e-ink tablets (Onyx Boox, Supernote, Kindle Scribe, re
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
-Chisel features a dedicated tabbed settings interface:
-- **Media**: Set attachment target paths (e.g. `./assets`, `attachments/{note}`), file rename patterns, and mobile safety preferences.
-- **Snippets**: Manage loaded theme snippets, custom font embedding, and view global cache status.
-- **Zen**: Configure focus mode behaviors and interface elements to hide.
-- **E-ink**: Toggle e-ink high contrast mode and grayscale rendering.
-- **Daily Nav**: Customize daily note formats and navigation commands.
+Open **Settings → Chisel**. The page opens on **General**; **Reading**, **Writing** and **Vault** are the tabs next to it. Every feature above names the tab it lives in.
 
 ---
 

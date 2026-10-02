@@ -119,7 +119,7 @@ class SeedbedsSettingTab extends PluginSettingTab {
   display() {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", { text: "Seedbeds (Auto Frontmatter)" });
+    new Setting(containerEl).setName("Seedbeds").setHeading();
 
     const desc = containerEl.createEl("p", {
       text: "Seedbeds automate metadata hygiene in your vault. When a markdown note is created inside or moved to a target folder, the plugin automatically writes the configured frontmatter properties to its YAML header without overwriting existing keys.",

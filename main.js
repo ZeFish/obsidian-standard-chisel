@@ -15,7 +15,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
 var require_live = __commonJS({
   "src/features/live/index.js"(exports2, module2) {
     "use strict";
-    var { Plugin: Plugin2, PluginSettingTab: PluginSettingTab2, Setting } = require("obsidian");
+    var { Plugin: Plugin2, PluginSettingTab, Setting } = require("obsidian");
     var DEFAULT_SETTINGS = {
       baseURL: "https://example.com/",
       noPermalinkSuffix: "n/",
@@ -78,7 +78,7 @@ var require_live = __commonJS({
         }
       }
     };
-    var LiveSettingTab2 = class extends PluginSettingTab2 {
+    var LiveSettingTab = class extends PluginSettingTab {
       constructor(app, plugin) {
         super(app, plugin);
         this.plugin = plugin;
@@ -92,7 +92,7 @@ var require_live = __commonJS({
       display() {
         const { containerEl } = this;
         containerEl.empty();
-        containerEl.createEl("h2", { text: "Live Settings" });
+        new Setting(containerEl).setName("Live").setHeading();
         new Setting(containerEl).setName("Show ribbon icon").addToggle(
           (toggle) => toggle.setValue(this.settings.showRibbon).onChange(async (value) => {
             this.settings.showRibbon = value;
@@ -114,7 +114,7 @@ var require_live = __commonJS({
         );
       }
     };
-    module2.exports = { LiveFeature: LiveFeature2, LiveSettingTab: LiveSettingTab2 };
+    module2.exports = { LiveFeature: LiveFeature2, LiveSettingTab };
   }
 });
 
@@ -195,7 +195,7 @@ var require_parser = __commonJS({
 var require_echo = __commonJS({
   "src/features/echo/index.js"(exports2, module2) {
     "use strict";
-    var { Plugin: Plugin2, PluginSettingTab: PluginSettingTab2, Setting, Notice } = require("obsidian");
+    var { Plugin: Plugin2, PluginSettingTab, Setting, Notice } = require("obsidian");
     var {
       parseNote,
       formatTimestamp,
@@ -355,7 +355,7 @@ var require_echo = __commonJS({
         }
       }
     };
-    var EchoSettingTab2 = class extends PluginSettingTab2 {
+    var EchoSettingTab = class extends PluginSettingTab {
       constructor(app, plugin) {
         super(app, plugin);
         this.plugin = plugin;
@@ -365,7 +365,7 @@ var require_echo = __commonJS({
       display() {
         const { containerEl } = this;
         containerEl.empty();
-        containerEl.createEl("h2", { text: "Echo" });
+        new Setting(containerEl).setName("Echo").setHeading();
         containerEl.createEl("p", {
           text: "Echo searches for specific tags within these log folders to generate dynamic feeds.",
           cls: "setting-item-description"
@@ -383,7 +383,7 @@ var require_echo = __commonJS({
             this.display();
           })
         );
-        containerEl.createEl("h3", { text: "Example usage" });
+        new Setting(containerEl).setName("Example usage").setHeading();
         const code = "```echo\ntag: work\nlimit: 5\nsort: desc\n```";
         containerEl.createEl("pre").createEl("code", { text: code });
       }
@@ -413,7 +413,7 @@ var require_echo = __commonJS({
         });
       }
     };
-    module2.exports = { EchoFeature: EchoFeature2, EchoSettingTab: EchoSettingTab2 };
+    module2.exports = { EchoFeature: EchoFeature2, EchoSettingTab };
   }
 });
 
@@ -423,7 +423,7 @@ var require_hollow = __commonJS({
     "use strict";
     var {
       Plugin: Plugin2,
-      PluginSettingTab: PluginSettingTab2,
+      PluginSettingTab,
       Modal,
       Notice,
       Setting
@@ -583,7 +583,7 @@ var require_hollow = __commonJS({
         this.contentEl.empty();
       }
     };
-    var HollowSettingTab2 = class extends PluginSettingTab2 {
+    var HollowSettingTab = class extends PluginSettingTab {
       constructor(app, plugin) {
         super(app, plugin);
         this.plugin = plugin;
@@ -594,7 +594,7 @@ var require_hollow = __commonJS({
       display() {
         const { containerEl } = this;
         containerEl.empty();
-        containerEl.createEl("h2", { text: "Hollow" });
+        new Setting(containerEl).setName("Hollow").setHeading();
         new Setting(containerEl).setName("Show ribbon icon").addToggle(
           (toggle) => toggle.setValue(this.settings.showRibbon).onChange(async (value) => {
             this.settings.showRibbon = value;
@@ -602,7 +602,7 @@ var require_hollow = __commonJS({
             this.plugin.features.find((f) => f instanceof HollowFeature2).updateRibbon();
           })
         );
-        containerEl.createEl("h3", { text: "Excluded folders" });
+        new Setting(containerEl).setName("Excluded folders").setHeading();
         containerEl.createEl("p", {
           text: "Hollow will skip notes inside these folders. Matches the folder name anywhere in the path.",
           cls: "setting-item-description"
@@ -646,7 +646,7 @@ var require_hollow = __commonJS({
         });
       }
     };
-    module2.exports = { HollowFeature: HollowFeature2, HollowSettingTab: HollowSettingTab2 };
+    module2.exports = { HollowFeature: HollowFeature2, HollowSettingTab };
   }
 });
 
@@ -654,6 +654,16 @@ var require_hollow = __commonJS({
 var require_constants = __commonJS({
   "src/constants.js"(exports2, module2) {
     "use strict";
+    var DOCS_BASE = "https://github.com/ZeFish/obsidian-standard-chisel#";
+    var DOCS = {
+      overview: DOCS_BASE + "readme",
+      interface: DOCS_BASE + "interface-and-zen",
+      media: DOCS_BASE + "media-manager",
+      snippets: DOCS_BASE + "snippets-and-typography",
+      scrollMap: DOCS_BASE + "scroll-map",
+      systemTray: DOCS_BASE + "system-tray",
+      base64: DOCS_BASE + "base64-fold"
+    };
     function descWithLinks(text, links = []) {
       const frag = document.createDocumentFragment();
       const parts = text.split("\xA7");
@@ -672,6 +682,7 @@ var require_constants = __commonJS({
       return frag;
     }
     module2.exports = {
+      DOCS,
       descWithLinks
     };
   }
@@ -745,11 +756,11 @@ var require_system_tray = __commonJS({
   "src/features/system-tray/index.js"(exports2, module2) {
     "use strict";
     var obsidian = require("obsidian");
-    var { PluginSettingTab: PluginSettingTab2, Setting, Platform: Platform2 } = obsidian;
-    var { descWithLinks } = require_constants();
+    var { PluginSettingTab, Setting, Platform } = obsidian;
+    var { descWithLinks, DOCS } = require_constants();
     var path = null;
     var remote = null;
-    if (Platform2.isDesktop) {
+    if (Platform.isDesktop) {
       try {
         path = require("path");
         remote = require("@electron/remote");
@@ -763,7 +774,7 @@ var require_system_tray = __commonJS({
       trayIconTooltip: "{{vault}} | Obsidian"
     };
     function getElectronWindow() {
-      if (!Platform2.isDesktop || !remote) return null;
+      if (!Platform.isDesktop || !remote) return null;
       try {
         return remote.getCurrentWindow();
       } catch {
@@ -774,7 +785,7 @@ var require_system_tray = __commonJS({
       constructor(app, plugin) {
         __publicField(this, "handleBeforeUnload", (event) => {
           if (this.isAppQuitting) return;
-          if (Platform2.isDesktop && remote) {
+          if (Platform.isDesktop && remote) {
             remote.getCurrentWindow().hide();
           }
           event.stopImmediatePropagation();
@@ -804,7 +815,7 @@ var require_system_tray = __commonJS({
         return path.join(basePath, this.plugin.manifest.dir);
       }
       async load() {
-        if (!Platform2.isDesktop || !remote) return;
+        if (!Platform.isDesktop || !remote) return;
         this.observeWindows();
         if (this.settings.enabled !== false) {
           if (window._atelierTray && typeof window._atelierTray.destroy === "function") {
@@ -842,7 +853,7 @@ var require_system_tray = __commonJS({
         }
       }
       setupTrayManager() {
-        if (!Platform2.isDesktop || !remote) return;
+        if (!Platform.isDesktop || !remote) return;
         try {
           const { TrayManager } = require_tray_manager();
           this.trayManager = new TrayManager(
@@ -873,7 +884,7 @@ var require_system_tray = __commonJS({
         }
       }
       async unload() {
-        if (!Platform2.isDesktop) return;
+        if (!Platform.isDesktop) return;
         this.teardownBackgroundPersistence();
         if (this.trayManager) {
           this.trayManager.destroyTray();
@@ -881,7 +892,7 @@ var require_system_tray = __commonJS({
         window._atelierTray = null;
       }
       setupBackgroundPersistence() {
-        if (!Platform2.isDesktop || !remote) return;
+        if (!Platform.isDesktop || !remote) return;
         this.teardownBackgroundPersistence();
         const win = getElectronWindow();
         if (!win) return;
@@ -918,7 +929,7 @@ var require_system_tray = __commonJS({
         }
       }
       teardownBackgroundPersistence() {
-        if (Platform2.isDesktop && remote) {
+        if (Platform.isDesktop && remote) {
           if (this._beforeQuitHandler) {
             remote.app.removeListener("before-quit", this._beforeQuitHandler);
             this._beforeQuitHandler = null;
@@ -942,7 +953,7 @@ var require_system_tray = __commonJS({
         return [...this.vaultWindows];
       }
       observeWindows() {
-        if (!Platform2.isDesktop || !remote) return;
+        if (!Platform.isDesktop || !remote) return;
         const onWindowCreation = (win) => {
           this.vaultWindows.add(win);
           win.on("close", () => {
@@ -985,7 +996,7 @@ var require_system_tray = __commonJS({
         }
       }
       interceptWindowClose() {
-        if (!Platform2.isDesktop || !remote) return;
+        if (!Platform.isDesktop || !remote) return;
         window.addEventListener("beforeunload", this.handleBeforeUnload, true);
         const win = getElectronWindow();
         if (win) win.on("close", this.handleWindowClose);
@@ -996,7 +1007,7 @@ var require_system_tray = __commonJS({
         if (win) win.removeListener("close", this.handleWindowClose);
       }
     };
-    var SystemTraySettingTab2 = class extends PluginSettingTab2 {
+    var SystemTraySettingTab = class extends PluginSettingTab {
       constructor(app, plugin) {
         super(app, plugin);
         this.plugin = plugin;
@@ -1012,25 +1023,25 @@ var require_system_tray = __commonJS({
       display() {
         const { containerEl } = this;
         containerEl.empty();
-        containerEl.createEl("h2", { text: "System Tray" });
+        new Setting(containerEl).setName("System tray").setHeading();
         const desc = containerEl.createEl("p", {
           text: "Keeps Obsidian running silently in the background when you close the main window. Instead of quitting, Obsidian hides to the system tray so your notes and sync tasks remain active. ",
           cls: "setting-item-description"
         });
         desc.createEl("a", {
-          text: "View System Tray Manual",
-          href: "https://stnd.build/3-archives/obsidian-plugin#9-system-tray"
+          text: "View the documentation",
+          href: DOCS.systemTray
         });
-        if (!Platform2.isDesktop) {
+        if (!Platform.isDesktop) {
           containerEl.createEl("p", {
             text: "System tray features are only available on desktop (Windows, macOS, Linux).",
             cls: "mod-warning"
           });
           return;
         }
-        new Setting(containerEl).setName("System Tray").setDesc(descWithLinks(
+        new Setting(containerEl).setName("System tray").setDesc(descWithLinks(
           "Intercept the window close event and minimize Obsidian to the system tray instead of quitting. A tray icon lets you restore or fully quit at any time. \xA7 for platform-specific behavior.",
-          [{ text: "See System Tray guide", href: "https://stnd.build/3-archives/obsidian-plugin#9-system-tray" }]
+          [{ text: "See System Tray guide", href: DOCS.systemTray }]
         )).addToggle(
           (toggle) => toggle.setValue(this.settings.enabled !== false).onChange(async (v) => {
             this.settings.enabled = v;
@@ -1053,7 +1064,7 @@ var require_system_tray = __commonJS({
         );
         new Setting(containerEl).setName("Hide on launch").setDesc(descWithLinks(
           "Launch Obsidian directly to the tray without showing the main window. \xA7 for the login item setup guide.",
-          [{ text: "See startup guide", href: "https://stnd.build/3-archives/obsidian-plugin#9-system-tray" }]
+          [{ text: "See startup guide", href: DOCS.systemTray }]
         )).addToggle(
           (toggle) => toggle.setValue(this.settings.hideOnLaunch || false).onChange(async (v) => {
             this.settings.hideOnLaunch = v;
@@ -1062,7 +1073,7 @@ var require_system_tray = __commonJS({
         );
       }
     };
-    module2.exports = { SystemTrayFeature: SystemTrayFeature2, SystemTraySettingTab: SystemTraySettingTab2 };
+    module2.exports = { SystemTrayFeature: SystemTrayFeature2, SystemTraySettingTab };
   }
 });
 
@@ -1116,8 +1127,8 @@ var require_folder_suggest = __commonJS({
 var require_media_manager = __commonJS({
   "src/features/media-manager/index.js"(exports2, module2) {
     "use strict";
-    var { TFile, PluginSettingTab: PluginSettingTab2, Setting, Notice, TextComponent, ButtonComponent, Platform: Platform2 } = require("obsidian");
-    var { descWithLinks } = require_constants();
+    var { TFile, PluginSettingTab, Setting, Notice, TextComponent, ButtonComponent, Platform } = require("obsidian");
+    var { descWithLinks, DOCS } = require_constants();
     var VaultAuditFeature = class {
       constructor(app, plugin) {
         this.app = app;
@@ -1168,7 +1179,7 @@ var require_media_manager = __commonJS({
       }
       async handleNewFile(file) {
         if (!this.settings.enableSmartRename) return;
-        if (Platform2.isMobile && !this.settings.enableOnMobile) {
+        if (Platform.isMobile && !this.settings.enableOnMobile) {
           return;
         }
         if (!this.isMediaFile(file)) return;
@@ -1581,7 +1592,7 @@ Note cr\xE9\xE9e automatiquement pour r\xE9soudre un lien bris\xE9 depuis [[${ac
         }
       }
     };
-    var MediaManagerSettingTab2 = class extends PluginSettingTab2 {
+    var MediaManagerSettingTab = class extends PluginSettingTab {
       constructor(app, plugin) {
         super(app, plugin);
         this.plugin = plugin;
@@ -1611,18 +1622,18 @@ Note cr\xE9\xE9e automatiquement pour r\xE9soudre un lien bris\xE9 depuis [[${ac
       display() {
         const { containerEl } = this;
         containerEl.empty();
-        containerEl.createEl("h2", { text: "Media Manager" });
+        new Setting(containerEl).setName("Media").setHeading();
         const desc = containerEl.createEl("p", {
           text: "Automatically renames and moves pasted or dropped media assets to keep your vault organized. ",
           cls: "setting-item-description"
         });
         desc.createEl("a", {
-          text: "View Media Manager Manual",
-          href: "https://stnd.build/3-archives/obsidian-plugin#7-media-manager"
+          text: "View the documentation",
+          href: DOCS.media
         });
         new Setting(containerEl).setName("Smart rename attachments").setDesc(descWithLinks(
           "Intercepts newly pasted or dropped media, generates a unique timestamp prefix, and moves them to the configured folder. \xA7 for the naming format.",
-          [{ text: "See Media Manager guide", href: "https://stnd.build/3-archives/obsidian-plugin#7-media-manager" }]
+          [{ text: "See Media Manager guide", href: DOCS.media }]
         )).addToggle(
           (toggle) => toggle.setValue(this.settings.enableSmartRename || false).onChange(async (value) => {
             this.settings.enableSmartRename = value;
@@ -1649,7 +1660,7 @@ Note cr\xE9\xE9e automatiquement pour r\xE9soudre un lien bris\xE9 depuis [[${ac
         );
         new Setting(containerEl).setName("Storage folder").setDesc(descWithLinks(
           "Vault folder where all managed media files are moved after rename. \xA7 for recommended folder structures.",
-          [{ text: "View setup guide", href: "https://stnd.build/3-archives/obsidian-plugin#7-media-manager" }]
+          [{ text: "View setup guide", href: DOCS.media }]
         )).addText((text) => {
           text.setPlaceholder("Kernel/attachments").setValue(this.settings.mediaFolder || "Kernel/attachments").onChange(async (value) => {
             this.settings.mediaFolder = value.trim();
@@ -1660,7 +1671,7 @@ Note cr\xE9\xE9e automatiquement pour r\xE9soudre un lien bris\xE9 depuis [[${ac
         });
         const excludesSection = containerEl.createEl("div");
         excludesSection.style.cssText = "background: var(--background-secondary); border: 1px solid var(--background-modifier-border);border-radius: 10px; padding: 16px 20px 8px; margin: 16px 0;";
-        excludesSection.createEl("h3", { text: "Excluded folders" }).style.cssText = "margin: 0 0 6px; font-size: var(--font-ui-medium);";
+        new Setting(excludesSection).setName("Excluded folders").setHeading();
         excludesSection.createEl("p", {
           text: "Ignore new media created in these folders.",
           cls: "setting-item-description"
@@ -1705,7 +1716,7 @@ Note cr\xE9\xE9e automatiquement pour r\xE9soudre un lien bris\xE9 depuis [[${ac
         });
         new Setting(containerEl).setName("Timestamp format").setDesc(descWithLinks(
           "Format used to prefix media filenames. \xA7 for a comparison of all available formats.",
-          [{ text: "See timestamp formats", href: "https://stnd.build/3-archives/obsidian-plugin#7-media-manager" }]
+          [{ text: "See timestamp formats", href: DOCS.media }]
         )).addDropdown(
           (dropdown) => dropdown.addOption("YYMMDD_HHmm", "YYMMDD_HHmm (e.g., 260619_0904)").addOption("YYYYMMDDHHmmss", "YYYYMMDDHHmmss").addOption("ms", "Timestamp milliseconds").setValue(this.settings.timestampFormat || "YYMMDD_HHmm").onChange(async (value) => {
             this.settings.timestampFormat = value;
@@ -1714,7 +1725,7 @@ Note cr\xE9\xE9e automatiquement pour r\xE9soudre un lien bris\xE9 depuis [[${ac
         );
         new Setting(containerEl).setName("Timestamp exclusion regex").setDesc(descWithLinks(
           "A regular expression used to detect if a file already carries a timestamp, preventing double-prefixing. \xA7 for regex syntax help.",
-          [{ text: "View exclusion docs", href: "https://stnd.build/3-archives/obsidian-plugin#7-media-manager" }]
+          [{ text: "View exclusion docs", href: DOCS.media }]
         )).addText(
           (text) => text.setPlaceholder("^\\d{6}_\\d{4}_").setValue(this.settings.timestampRegex || "^\\d{6}_\\d{4}_").onChange(async (value) => {
             this.settings.timestampRegex = value.trim();
@@ -1723,7 +1734,7 @@ Note cr\xE9\xE9e automatiquement pour r\xE9soudre un lien bris\xE9 depuis [[${ac
         );
       }
     };
-    module2.exports = { VaultAuditFeature, MediaManagerFeature: VaultAuditFeature, MediaManagerSettingTab: MediaManagerSettingTab2 };
+    module2.exports = { VaultAuditFeature, MediaManagerFeature: VaultAuditFeature, MediaManagerSettingTab };
   }
 });
 
@@ -1731,7 +1742,7 @@ Note cr\xE9\xE9e automatiquement pour r\xE9soudre un lien bris\xE9 depuis [[${ac
 var require_eink = __commonJS({
   "src/features/eink/index.js"(exports2, module2) {
     "use strict";
-    var { PluginSettingTab: PluginSettingTab2, Setting } = require("obsidian");
+    var { PluginSettingTab, Setting } = require("obsidian");
     var DEFAULT_SETTINGS = {
       mode: "auto",
       // auto, always, never
@@ -1920,7 +1931,7 @@ var require_eink = __commonJS({
         return ua.includes("onyx") || ua.includes("boox") || model.includes("note") || model.includes("nova") || model.includes("poke") || model.includes("leaf") || model.includes("page") || model.includes("palma") || model.includes("max") || ua.includes("eink") || ua.includes("ereader");
       }
     };
-    var EinkSettingTab2 = class extends PluginSettingTab2 {
+    var EinkSettingTab = class extends PluginSettingTab {
       constructor(app, plugin) {
         super(app, plugin);
         this.plugin = plugin;
@@ -1939,7 +1950,7 @@ var require_eink = __commonJS({
       display() {
         const { containerEl } = this;
         containerEl.empty();
-        containerEl.createEl("h2", { text: "E-ink / Boox Settings" });
+        new Setting(containerEl).setName("E-ink and Boox").setHeading();
         const feature = this.getFeature();
         if (!feature) {
           const noticeEl = containerEl.createEl("div", {
@@ -1995,7 +2006,7 @@ var require_eink = __commonJS({
             this.getFeature().updateState();
           })
         );
-        containerEl.createEl("h3", { text: "Physical Buttons & Scrolling" });
+        new Setting(containerEl).setName("Physical buttons and scrolling").setHeading();
         new Setting(containerEl).setName("Intercept volume keys").setDesc("Map Volume Up and Volume Down (recommended on Onyx Boox configured in volume button mode).").addToggle(
           (toggle) => toggle.setValue(this.settings.interceptVolume).onChange(async (value) => {
             this.settings.interceptVolume = value;
@@ -2038,7 +2049,7 @@ var require_eink = __commonJS({
             await this.save();
           })
         );
-        containerEl.createEl("h3", { text: "E-ink Typography & Layout" });
+        new Setting(containerEl).setName("Typography and layout").setHeading();
         new Setting(containerEl).setName("E-ink font family").setDesc("Choose the active font family for text, headers, and UI interface in E-ink mode.").addDropdown(
           (dropdown) => dropdown.addOption("Fraunces", "Fraunces (Serif)").addOption("Futura Now", "Futura Now (Geometric Sans)").addOption("MonoLisa", "MonoLisa (Monospace)").addOption("Atkinson Hyperlegible Next", "Atkinson Hyperlegible Next (Hyperlegible Sans)").addOption("Atkinson Hyperlegible Mono", "Atkinson Hyperlegible Mono (Hyperlegible Mono)").addOption("Berkeley Mono", "Berkeley Mono (Tech Monospace)").addOption("EB Garamond", "EB Garamond (Classic Serif)").addOption("Forrest", "Forrest (Warm Sans)").addOption("Helvetica Now", "Helvetica Now (Neo-Grotesque)").addOption("IBM Plex Sans", "IBM Plex Sans (Industrial Sans)").addOption("IBM Plex Serif", "IBM Plex Serif (Industrial Serif)").addOption("Inter", "Inter (Modern UI)").addOption("var(--font-default)", "System Default").setValue(this.settings.fontFamily || "Fraunces").onChange(async (value) => {
             this.settings.fontFamily = value;
@@ -2062,7 +2073,7 @@ var require_eink = __commonJS({
         );
       }
     };
-    module2.exports = { EinkFeature: EinkFeature2, EinkSettingTab: EinkSettingTab2 };
+    module2.exports = { EinkFeature: EinkFeature2, EinkSettingTab };
   }
 });
 
@@ -2070,8 +2081,8 @@ var require_eink = __commonJS({
 var require_scroll_map = __commonJS({
   "src/features/scroll-map/index.js"(exports2, module2) {
     "use strict";
-    var { Plugin: Plugin2, MarkdownView, Setting, PluginSettingTab: PluginSettingTab2 } = require("obsidian");
-    var { descWithLinks } = require_constants();
+    var { Plugin: Plugin2, MarkdownView, Setting, PluginSettingTab } = require("obsidian");
+    var { descWithLinks, DOCS } = require_constants();
     var DEFAULT_SETTINGS = {
       position: "right",
       scrollbarWidth: 2,
@@ -2275,7 +2286,7 @@ var require_scroll_map = __commonJS({
         }
       }
     };
-    var ScrollMapSettingTab2 = class extends PluginSettingTab2 {
+    var ScrollMapSettingTab = class extends PluginSettingTab {
       constructor(app, plugin) {
         super(app, plugin);
         this.plugin = plugin;
@@ -2286,16 +2297,16 @@ var require_scroll_map = __commonJS({
       display() {
         const { containerEl } = this;
         containerEl.empty();
-        containerEl.createEl("h2", { text: "Scroll Map" });
+        new Setting(containerEl).setName("Scroll map").setHeading();
         const desc = containerEl.createEl("p", {
           text: "Renders an interactive outline map next to the editor scrollbar for quick document navigation. ",
           cls: "setting-item-description"
         });
         desc.createEl("a", {
-          text: "View Scroll Map Manual",
-          href: "https://stnd.build/3-archives/obsidian-plugin#6-scroll-map"
+          text: "View the documentation",
+          href: DOCS.scrollMap
         });
-        new Setting(containerEl).setName("Scroll map position").setDesc(descWithLinks("Where the scroll map indicator appears in the editor. \xA7 for layout tips.", [{ text: "See positioning guide", href: "https://stnd.build/3-archives/obsidian-plugin#6-scroll-map" }])).addDropdown(
+        new Setting(containerEl).setName("Scroll map position").setDesc(descWithLinks("Where the scroll map indicator appears in the editor. \xA7 for layout tips.", [{ text: "See positioning guide", href: DOCS.scrollMap }])).addDropdown(
           (dropdown) => dropdown.addOptions({
             right: "Right",
             left: "Left",
@@ -2307,7 +2318,7 @@ var require_scroll_map = __commonJS({
             this.plugin.features.find((f) => f instanceof ScrollMapFeature2).updateScrollMap();
           })
         );
-        new Setting(containerEl).setName("Scrollbar width").setDesc(descWithLinks("Visual thickness of the scroll indicator in pixels (1\u201310). \xA7 for visual examples.", [{ text: "See scroll map docs", href: "https://stnd.build/3-archives/obsidian-plugin#6-scroll-map" }])).addSlider(
+        new Setting(containerEl).setName("Scrollbar width").setDesc(descWithLinks("Visual thickness of the scroll indicator in pixels (1\u201310). \xA7 for visual examples.", [{ text: "See scroll map docs", href: DOCS.scrollMap }])).addSlider(
           (slider) => slider.setLimits(1, 10, 1).setValue(
             this.settings.scrollbarWidth || DEFAULT_SETTINGS.scrollbarWidth
           ).onChange(async (v) => {
@@ -2316,14 +2327,14 @@ var require_scroll_map = __commonJS({
             this.plugin.features.find((f) => f instanceof ScrollMapFeature2).updateScrollMap();
           })
         );
-        new Setting(containerEl).setName("Opacity").setDesc(descWithLinks("Transparency of the indicator (0.1 = nearly invisible, 1 = fully opaque). \xA7 for recommended values.", [{ text: "See scroll map docs", href: "https://stnd.build/3-archives/obsidian-plugin#6-scroll-map" }])).addSlider(
+        new Setting(containerEl).setName("Opacity").setDesc(descWithLinks("Transparency of the indicator (0.1 = nearly invisible, 1 = fully opaque). \xA7 for recommended values.", [{ text: "See scroll map docs", href: DOCS.scrollMap }])).addSlider(
           (slider) => slider.setLimits(0.1, 1, 0.1).setValue(this.settings.opacity || DEFAULT_SETTINGS.opacity).onChange(async (v) => {
             this.settings.opacity = v;
             await this.plugin.saveSettings();
             this.plugin.features.find((f) => f instanceof ScrollMapFeature2).updateScrollMap();
           })
         );
-        new Setting(containerEl).setName("Scroll map behavior").setDesc(descWithLinks("Map mode shows a positional indicator; Progress mode shows a reading completion gauge. \xA7 for a full comparison.", [{ text: "Compare behaviors", href: "https://stnd.build/3-archives/obsidian-plugin#6-scroll-map" }])).addDropdown(
+        new Setting(containerEl).setName("Scroll map behavior").setDesc(descWithLinks("Map mode shows a positional indicator; Progress mode shows a reading completion gauge. \xA7 for a full comparison.", [{ text: "Compare behaviors", href: DOCS.scrollMap }])).addDropdown(
           (dropdown) => dropdown.addOptions({
             map: "Map (positional)",
             growth: "Progress (progressive)"
@@ -2335,7 +2346,7 @@ var require_scroll_map = __commonJS({
         );
       }
     };
-    module2.exports = { ScrollMapFeature: ScrollMapFeature2, ScrollMapSettingTab: ScrollMapSettingTab2 };
+    module2.exports = { ScrollMapFeature: ScrollMapFeature2, ScrollMapSettingTab };
   }
 });
 
@@ -2343,8 +2354,8 @@ var require_scroll_map = __commonJS({
 var require_snippet_manager = __commonJS({
   "src/features/snippet-manager/index.js"(exports2, module2) {
     "use strict";
-    var { PluginSettingTab: PluginSettingTab2, Setting, Notice, Platform: Platform2 } = require("obsidian");
-    var { descWithLinks } = require_constants();
+    var { PluginSettingTab, Setting, Notice, Platform } = require("obsidian");
+    var { descWithLinks, DOCS } = require_constants();
     var DEFAULT_SETTINGS = {
       enabled: true,
       // Notes whose frontmatter has this key become vault-wide stylesheets.
@@ -2718,7 +2729,7 @@ var require_snippet_manager = __commonJS({
           const file = files.find((f) => f.basename === name);
           if (file && !this.isFileExcluded(file)) {
             sources.add(file.path);
-            if (Platform2.isMobile && file.stat?.size && file.stat.size > 500 * 1024) {
+            if (Platform.isMobile && file.stat?.size && file.stat.size > 500 * 1024) {
               console.warn(`[Standard] Snippet local ignor\xE9 sur mobile car trop volumineux : ${file.path}`);
               continue;
             }
@@ -2761,7 +2772,7 @@ var require_snippet_manager = __commonJS({
         }
       }
     };
-    var SnippetManagerSettingTab2 = class extends PluginSettingTab2 {
+    var SnippetManagerSettingTab = class extends PluginSettingTab {
       constructor(app, plugin) {
         super(app, plugin);
         this.plugin = plugin;
@@ -2772,18 +2783,18 @@ var require_snippet_manager = __commonJS({
       display() {
         const { containerEl } = this;
         containerEl.empty();
-        containerEl.createEl("h2", { text: "Snippet Manager" });
+        new Setting(containerEl).setName("Snippets").setHeading();
         const desc = containerEl.createEl("p", {
           text: "Snippet Manager compiles and registers CSS stylesheets written directly inside your markdown notes. It parses CSS code blocks and hot-loads them in real time, bypassing Obsidian's hidden snippets directory. ",
           cls: "setting-item-description"
         });
         desc.createEl("a", {
-          text: "View Snippet Manager Manual",
-          href: "https://stnd.build/3-archives/obsidian-plugin#4-snippet-manager"
+          text: "View the documentation",
+          href: DOCS.snippets
         });
         const enableSetting = new Setting(containerEl).setName("Enable snippets").setDesc(descWithLinks(
           "Master switch for compilation and injection of \xA7 into your workspace.",
-          [{ text: "note-based CSS stylesheets", href: "https://stnd.build/3-archives/obsidian-plugin#4-snippet-manager" }]
+          [{ text: "note-based CSS stylesheets", href: DOCS.snippets }]
         ));
         enableSetting.addToggle(
           (toggle) => toggle.setValue(this.settings.enabled).onChange(async (v) => {
@@ -2808,7 +2819,7 @@ var require_snippet_manager = __commonJS({
         );
         const globalKeySetting = new Setting(containerEl).setName("Global snippet key").setDesc(descWithLinks(
           "YAML key identifying notes that serve as vault-wide stylesheets (e.g. `snippet: true`). These styles are \xA7 to prevent a flash of unstyled content at startup.",
-          [{ text: "cached locally", href: "https://stnd.build/3-archives/obsidian-plugin#4-snippet-manager" }]
+          [{ text: "cached locally", href: DOCS.snippets }]
         ));
         globalKeySetting.addText(
           (text) => text.setValue(this.settings.globalKey).onChange(async (v) => {
@@ -2819,7 +2830,7 @@ var require_snippet_manager = __commonJS({
         );
         const localKeySetting = new Setting(containerEl).setName("Local snippet key").setDesc(descWithLinks(
           "YAML key listing note names whose CSS loads only while that note is active (e.g. `snippets: [layout-card]`). \xA7 for contextual style patterns.",
-          [{ text: "See local snippets guide", href: "https://stnd.build/3-archives/obsidian-plugin#4-snippet-manager" }]
+          [{ text: "See local snippets guide", href: DOCS.snippets }]
         ));
         localKeySetting.addText(
           (text) => text.setValue(this.settings.localKey).onChange(async (v) => {
@@ -2830,7 +2841,7 @@ var require_snippet_manager = __commonJS({
         );
         const cssClassesSetting = new Setting(containerEl).setName("Always use 'cssclasses'").setDesc(descWithLinks(
           "Scan the native Obsidian \xA7 property for matching note stylesheets to load contextually.",
-          [{ text: "cssclasses", href: "https://stnd.build/3-archives/obsidian-plugin#4-snippet-manager" }]
+          [{ text: "cssclasses", href: DOCS.snippets }]
         ));
         cssClassesSetting.addToggle(
           (toggle) => toggle.setValue(this.settings.alwaysUseCssClasses || false).onChange(async (v) => {
@@ -2850,7 +2861,7 @@ var require_snippet_manager = __commonJS({
         );
         const rebuildSetting = new Setting(containerEl).setName("Rebuild global cache").setDesc(descWithLinks(
           "Force a full rescan of all global snippet notes and rebuild the startup cache file. \xA7 if styles aren't loading.",
-          [{ text: "Troubleshoot cache issues", href: "https://stnd.build/3-archives/obsidian-plugin#4-snippet-manager" }]
+          [{ text: "Troubleshoot cache issues", href: DOCS.snippets }]
         ));
         rebuildSetting.addButton(
           (btn) => btn.setButtonText("Rebuild now").onClick(async () => {
@@ -2877,7 +2888,7 @@ var require_snippet_manager = __commonJS({
         }
       }
     };
-    module2.exports = { SnippetManagerFeature: SnippetManagerFeature2, SnippetManagerSettingTab: SnippetManagerSettingTab2 };
+    module2.exports = { SnippetManagerFeature: SnippetManagerFeature2, SnippetManagerSettingTab };
   }
 });
 
@@ -2885,7 +2896,7 @@ var require_snippet_manager = __commonJS({
 var require_daily_nav = __commonJS({
   "src/features/daily-nav/index.js"(exports2, module2) {
     "use strict";
-    var { MarkdownView, Setting, PluginSettingTab: PluginSettingTab2 } = require("obsidian");
+    var { MarkdownView, Setting, PluginSettingTab } = require("obsidian");
     var { descWithLinks } = require_constants();
     var DailyNavFeature2 = class {
       constructor(app, plugin) {
@@ -3148,7 +3159,7 @@ var require_daily_nav = __commonJS({
         return result;
       }
     };
-    var DailyNavSettingTab2 = class extends PluginSettingTab2 {
+    var DailyNavSettingTab = class extends PluginSettingTab {
       constructor(app, plugin) {
         super(app, plugin);
         this.plugin = plugin;
@@ -3160,25 +3171,25 @@ var require_daily_nav = __commonJS({
       display() {
         const { containerEl } = this;
         containerEl.empty();
-        containerEl.createEl("h2", { text: "Navigation Notes Quotidiennes" });
+        new Setting(containerEl).setName("Daily notes navigation").setHeading();
         const desc = containerEl.createEl("p", {
-          text: "Affiche deux boutons flottants au bas de vos notes quotidiennes pour passer facilement \xE0 la note pr\xE9c\xE9dente ou suivante. ",
+          text: "Shows two floating buttons at the bottom of your daily notes to jump to the previous or next note. ",
           cls: "setting-item-description"
         });
-        new Setting(containerEl).setName("Activer la navigation").setDesc("Affiche la barre de navigation (pill) au bas des notes quotidiennes.").addToggle(
+        new Setting(containerEl).setName("Enable navigation").setDesc("Shows the navigation bar at the bottom of daily notes.").addToggle(
           (toggle) => toggle.setValue(this.settings.enabled).onChange(async (v) => {
             this.settings.enabled = v;
             await this.plugin.saveSettings();
             this.plugin.features.find((f) => f instanceof DailyNavFeature2).refresh();
           })
         );
-        new Setting(containerEl).setName("Mode de navigation").setDesc(descWithLinks(
-          "Chronologique suit l'ordre des notes existantes dans votre coffre. Calendrier suit l'ordre des jours du calendrier.",
+        new Setting(containerEl).setName("Navigation mode").setDesc(descWithLinks(
+          "Chronological follows the existing notes in your vault. Calendar steps through days one by one.",
           []
         )).addDropdown(
           (dropdown) => dropdown.addOptions({
-            chronological: "Chronologique (notes existantes)",
-            calendar: "Calendrier (jour par jour)"
+            chronological: "Chronological (existing notes)",
+            calendar: "Calendar (day by day)"
           }).setValue(this.settings.navigationMode).onChange(async (v) => {
             this.settings.navigationMode = v;
             await this.plugin.saveSettings();
@@ -3187,7 +3198,7 @@ var require_daily_nav = __commonJS({
         );
       }
     };
-    module2.exports = { DailyNavFeature: DailyNavFeature2, DailyNavSettingTab: DailyNavSettingTab2 };
+    module2.exports = { DailyNavFeature: DailyNavFeature2, DailyNavSettingTab };
   }
 });
 
@@ -3200,7 +3211,7 @@ var require_seedbeds = __commonJS({
       TFile,
       Setting,
       Notice,
-      PluginSettingTab: PluginSettingTab2
+      PluginSettingTab
     } = require("obsidian");
     var { descWithLinks } = require_constants();
     function toArray(val) {
@@ -3291,7 +3302,7 @@ var require_seedbeds = __commonJS({
         return searchIn.includes(searchFor);
       }
     };
-    var SeedbedsSettingTab2 = class extends PluginSettingTab2 {
+    var SeedbedsSettingTab = class extends PluginSettingTab {
       constructor(app, plugin) {
         super(app, plugin);
         this.plugin = plugin;
@@ -3303,7 +3314,7 @@ var require_seedbeds = __commonJS({
       display() {
         const { containerEl } = this;
         containerEl.empty();
-        containerEl.createEl("h2", { text: "Seedbeds (Auto Frontmatter)" });
+        new Setting(containerEl).setName("Seedbeds").setHeading();
         const desc = containerEl.createEl("p", {
           text: "Seedbeds automate metadata hygiene in your vault. When a markdown note is created inside or moved to a target folder, the plugin automatically writes the configured frontmatter properties to its YAML header without overwriting existing keys.",
           cls: "setting-item-description"
@@ -3480,7 +3491,7 @@ var require_seedbeds = __commonJS({
         });
       }
     };
-    module2.exports = { SeedbedsFeature: SeedbedsFeature2, SeedbedsSettingTab: SeedbedsSettingTab2 };
+    module2.exports = { SeedbedsFeature: SeedbedsFeature2, SeedbedsSettingTab };
   }
 });
 
@@ -3488,8 +3499,8 @@ var require_seedbeds = __commonJS({
 var require_interface_manager = __commonJS({
   "src/features/interface-manager/index.js"(exports2, module2) {
     "use strict";
-    var { PluginSettingTab: PluginSettingTab2, Setting, Notice } = require("obsidian");
-    var { descWithLinks } = require_constants();
+    var { PluginSettingTab, Setting, Notice } = require("obsidian");
+    var { descWithLinks, DOCS } = require_constants();
     var InterfaceManagerFeature2 = class {
       constructor(app, plugin) {
         this.app = app;
@@ -3861,7 +3872,7 @@ var require_interface_manager = __commonJS({
         }
       }
     };
-    var InterfaceManagerSettingTab2 = class extends PluginSettingTab2 {
+    var InterfaceManagerSettingTab = class extends PluginSettingTab {
       constructor(app, plugin) {
         super(app, plugin);
         this.plugin = plugin;
@@ -3879,18 +3890,18 @@ var require_interface_manager = __commonJS({
       display() {
         const { containerEl } = this;
         containerEl.empty();
-        containerEl.createEl("h2", { text: "General" });
+        new Setting(containerEl).setName("Interface").setHeading();
         const desc = containerEl.createEl("p", {
           text: "Configure Zen mode and core interface enhancements. ",
           cls: "setting-item-description"
         });
         desc.createEl("a", {
-          text: "View General Preferences Manual",
-          href: "https://stnd.build/3-archives/obsidian-plugin"
+          text: "View the documentation",
+          href: DOCS.overview
         });
         new Setting(containerEl).setName("Zen").setDesc(descWithLinks(
           "Hide vault name, file explorer header, status bar, and tab header when only one tab is open. \xA7 for the full list of hidden elements.",
-          [{ text: "See Zen mode guide", href: "https://stnd.build/3-archives/obsidian-plugin#8-general--zen" }]
+          [{ text: "See Zen mode guide", href: DOCS.interface }]
         )).addToggle(
           (t) => t.setValue(this.settings.zen).onChange(async (v) => {
             try {
@@ -3917,7 +3928,7 @@ var require_interface_manager = __commonJS({
         );
         new Setting(containerEl).setName("Truncate long filenames").setDesc(descWithLinks(
           "Cut long file and folder names in the explorer with an ellipsis (\u2026) instead of clipping them. \xA7 for visual examples.",
-          [{ text: "See General docs", href: "https://stnd.build/3-archives/obsidian-plugin#8-general--zen" }]
+          [{ text: "See the documentation", href: DOCS.interface }]
         )).addToggle(
           (t) => t.setValue(this.settings.truncateFilenames).onChange(async (v) => {
             try {
@@ -3937,7 +3948,7 @@ var require_interface_manager = __commonJS({
         );
         new Setting(containerEl).setName("Default reading mode").setDesc(descWithLinks(
           "Automatically open notes in reading mode when no mode is defined in frontmatter. Override per-note using \xA7 (`mode: read`, `mode: edit`, `mode: source`).",
-          [{ text: "frontmatter mode keys", href: "https://stnd.build/3-archives/obsidian-plugin#8-general--zen" }]
+          [{ text: "frontmatter mode keys", href: DOCS.interface }]
         )).addToggle(
           (t) => t.setValue(this.settings.defaultReadingMode).onChange(async (v) => {
             try {
@@ -3957,7 +3968,7 @@ var require_interface_manager = __commonJS({
         );
         new Setting(containerEl).setName("Focus last line on mobile").setDesc(descWithLinks(
           "Scroll to and focus the last line when opening a note in edit mode on mobile. \xA7 for the mobile workflow guide.",
-          [{ text: "See mobile tips", href: "https://stnd.build/3-archives/obsidian-plugin#8-general--zen" }]
+          [{ text: "See mobile tips", href: DOCS.interface }]
         )).addToggle(
           (t) => t.setValue(this.settings.autoFocusLastLineOnMobile).onChange(async (v) => {
             try {
@@ -3971,7 +3982,7 @@ var require_interface_manager = __commonJS({
         );
         new Setting(containerEl).setName("Auto-hide sidebars").setDesc(descWithLinks(
           "Hide sidebars and the ribbon until you hover near the edge of the screen. \xA7 for the hover zone behavior.",
-          [{ text: "See auto-hide guide", href: "https://stnd.build/3-archives/obsidian-plugin#8-general--zen" }]
+          [{ text: "See auto-hide guide", href: DOCS.interface }]
         )).addToggle(
           (t) => t.setValue(this.settings.autoHideSidebars).onChange(async (v) => {
             try {
@@ -3992,7 +4003,7 @@ var require_interface_manager = __commonJS({
         );
       }
     };
-    module2.exports = { InterfaceManagerFeature: InterfaceManagerFeature2, InterfaceManagerSettingTab: InterfaceManagerSettingTab2 };
+    module2.exports = { InterfaceManagerFeature: InterfaceManagerFeature2, InterfaceManagerSettingTab };
   }
 });
 
@@ -4001,8 +4012,8 @@ var require_base64_fold = __commonJS({
   "src/features/base64-fold/index.js"(exports2, module2) {
     "use strict";
     var { Decoration, ViewPlugin, WidgetType } = require("@codemirror/view");
-    var { PluginSettingTab: PluginSettingTab2, Setting } = require("obsidian");
-    var { descWithLinks } = require_constants();
+    var { PluginSettingTab, Setting } = require("obsidian");
+    var { descWithLinks, DOCS } = require_constants();
     var Base64FoldWidget = class extends WidgetType {
       constructor(length) {
         super();
@@ -4200,7 +4211,7 @@ var require_base64_fold = __commonJS({
         console.log("Atelier: Base64 Fold feature unloaded");
       }
     };
-    var Base64FoldSettingTab2 = class extends PluginSettingTab2 {
+    var Base64FoldSettingTab = class extends PluginSettingTab {
       constructor(app, plugin) {
         super(app, plugin);
         this.plugin = plugin;
@@ -4209,18 +4220,18 @@ var require_base64_fold = __commonJS({
       display() {
         const { containerEl } = this;
         containerEl.empty();
-        containerEl.createEl("h2", { text: "Base64 Fold" });
+        new Setting(containerEl).setName("Base64 fold").setHeading();
         const desc = containerEl.createEl("p", {
           text: "Automatically collapses long base64-encoded strings (images, fonts, binary data) in both the editor and reading view into a compact, expandable badge. Keeps your notes readable without losing the embedded data. ",
           cls: "setting-item-description"
         });
         desc.createEl("a", {
-          text: "View Base64 Fold Manual",
-          href: "https://stnd.build/3-archives/obsidian-plugin#10-base64-fold"
+          text: "View the documentation",
+          href: DOCS.base64
         });
         new Setting(containerEl).setName("Enable Base64 Fold").setDesc(descWithLinks(
           "Fold base64 strings longer than 100 characters into a compact badge. Click the badge to reveal. \xA7 for folding details.",
-          [{ text: "See Base64 Fold docs", href: "https://stnd.build/3-archives/obsidian-plugin#10-base64-fold" }]
+          [{ text: "See Base64 Fold docs", href: DOCS.base64 }]
         )).addToggle(
           (t) => t.setValue(this.settings.enabled !== false).onChange(async (v) => {
             this.settings.enabled = v;
@@ -4231,54 +4242,132 @@ var require_base64_fold = __commonJS({
     };
     module2.exports = {
       Base64FoldFeature: Base64FoldFeature2,
-      Base64FoldSettingTab: Base64FoldSettingTab2
+      Base64FoldSettingTab
     };
   }
 });
 
+// src/features/settings/index.js
+var require_settings = __commonJS({
+  "src/features/settings/index.js"(exports2, module2) {
+    "use strict";
+    var { PluginSettingTab, Platform } = require("obsidian");
+    var { LiveSettingTab } = require_live();
+    var { EchoSettingTab } = require_echo();
+    var { HollowSettingTab } = require_hollow();
+    var { SystemTraySettingTab } = require_system_tray();
+    var { MediaManagerSettingTab } = require_media_manager();
+    var { EinkSettingTab } = require_eink();
+    var { ScrollMapSettingTab } = require_scroll_map();
+    var { SnippetManagerSettingTab } = require_snippet_manager();
+    var { DailyNavSettingTab } = require_daily_nav();
+    var { SeedbedsSettingTab } = require_seedbeds();
+    var { InterfaceManagerSettingTab } = require_interface_manager();
+    var { Base64FoldSettingTab } = require_base64_fold();
+    var GROUPS = [
+      {
+        id: "general",
+        label: "General",
+        sections: [
+          (app, plugin) => new InterfaceManagerSettingTab(app, plugin),
+          (app, plugin) => Platform.isDesktop ? new SystemTraySettingTab(app, plugin) : null
+        ]
+      },
+      {
+        id: "reading",
+        label: "Reading",
+        sections: [
+          (app, plugin) => new ScrollMapSettingTab(app, plugin),
+          (app, plugin) => new Base64FoldSettingTab(app, plugin),
+          (app, plugin) => new EinkSettingTab(app, plugin)
+        ]
+      },
+      {
+        id: "writing",
+        label: "Writing",
+        sections: [
+          (app, plugin) => new SnippetManagerSettingTab(app, plugin),
+          (app, plugin) => new MediaManagerSettingTab(app, plugin),
+          (app, plugin) => new SeedbedsSettingTab(app, plugin),
+          (app, plugin) => new DailyNavSettingTab(app, plugin)
+        ]
+      },
+      {
+        id: "vault",
+        label: "Vault",
+        sections: [
+          (app, plugin) => new LiveSettingTab(app, plugin),
+          (app, plugin) => new EchoSettingTab(app, plugin),
+          (app, plugin) => new HollowSettingTab(app, plugin)
+        ]
+      }
+    ];
+    var ChiselSettingTab2 = class extends PluginSettingTab {
+      constructor(app, plugin) {
+        super(app, plugin);
+        this.plugin = plugin;
+        this.currentGroup = GROUPS[0].id;
+      }
+      display() {
+        const { containerEl } = this;
+        containerEl.empty();
+        const nav = containerEl.createDiv({ cls: "chisel-settings-nav" });
+        for (const group of GROUPS) {
+          const button = nav.createEl("button", {
+            text: group.label,
+            cls: group.id === this.currentGroup ? "mod-cta" : ""
+          });
+          button.addEventListener("click", () => {
+            this.currentGroup = group.id;
+            this.display();
+          });
+        }
+        const active = GROUPS.find((g) => g.id === this.currentGroup) || GROUPS[0];
+        const content = containerEl.createDiv({ cls: "chisel-settings-content" });
+        for (const make of active.sections) {
+          const tab = make(this.app, this.plugin);
+          if (!tab) continue;
+          tab.containerEl = content.createDiv({ cls: "chisel-settings-section" });
+          tab.display();
+        }
+      }
+    };
+    module2.exports = { ChiselSettingTab: ChiselSettingTab2, GROUPS };
+  }
+});
+
 // src/main.js
-var { Plugin, PluginSettingTab, Platform } = require("obsidian");
-var { LiveFeature, LiveSettingTab } = require_live();
-var { EchoFeature, EchoSettingTab } = require_echo();
+var { Plugin } = require("obsidian");
+var { ChiselSettingTab } = require_settings();
+var { LiveFeature } = require_live();
+var { EchoFeature } = require_echo();
+var { HollowFeature } = require_hollow();
 var {
-  HollowFeature,
-  HollowSettingTab
-} = require_hollow();
-var {
-  SystemTrayFeature,
-  SystemTraySettingTab
+  SystemTrayFeature
 } = require_system_tray();
 var {
-  MediaManagerFeature,
-  MediaManagerSettingTab
+  MediaManagerFeature
 } = require_media_manager();
 var {
-  EinkFeature,
-  EinkSettingTab
+  EinkFeature
 } = require_eink();
 var {
-  ScrollMapFeature,
-  ScrollMapSettingTab
+  ScrollMapFeature
 } = require_scroll_map();
 var {
-  SnippetManagerFeature,
-  SnippetManagerSettingTab
+  SnippetManagerFeature
 } = require_snippet_manager();
 var {
-  DailyNavFeature,
-  DailyNavSettingTab
+  DailyNavFeature
 } = require_daily_nav();
 var {
-  SeedbedsFeature,
-  SeedbedsSettingTab
+  SeedbedsFeature
 } = require_seedbeds();
 var {
-  InterfaceManagerFeature,
-  InterfaceManagerSettingTab
+  InterfaceManagerFeature
 } = require_interface_manager();
 var {
-  Base64FoldFeature,
-  Base64FoldSettingTab
+  Base64FoldFeature
 } = require_base64_fold();
 var ChiselPlugin = class extends Plugin {
   async onload() {
@@ -4310,52 +4399,6 @@ var ChiselPlugin = class extends Plugin {
   }
   async saveSettings() {
     await this.saveData(this.settings);
-  }
-};
-var ChiselSettingTab = class extends PluginSettingTab {
-  constructor(app, plugin) {
-    super(app, plugin);
-    this.plugin = plugin;
-    this.currentTab = "Live";
-  }
-  display() {
-    const { containerEl } = this;
-    containerEl.empty();
-    containerEl.createEl("h1", { text: "Chisel" });
-    const navEl = containerEl.createEl("div", { cls: "chisel-settings-nav" });
-    navEl.style.cssText = "display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;";
-    const tabs = [
-      { id: "Live", tab: new LiveSettingTab(this.app, this.plugin) },
-      { id: "Echo", tab: new EchoSettingTab(this.app, this.plugin) },
-      { id: "Hollow", tab: new HollowSettingTab(this.app, this.plugin) },
-      { id: "Tray", tab: Platform.isDesktop ? new SystemTraySettingTab(this.app, this.plugin) : null },
-      { id: "Media", tab: new MediaManagerSettingTab(this.app, this.plugin) },
-      { id: "E-ink", tab: new EinkSettingTab(this.app, this.plugin) },
-      { id: "Scroll Map", tab: new ScrollMapSettingTab(this.app, this.plugin) },
-      { id: "Snippets", tab: new SnippetManagerSettingTab(this.app, this.plugin) },
-      { id: "Daily Nav", tab: new DailyNavSettingTab(this.app, this.plugin) },
-      { id: "Seedbeds", tab: new SeedbedsSettingTab(this.app, this.plugin) },
-      { id: "Zen", tab: new InterfaceManagerSettingTab(this.app, this.plugin) },
-      { id: "Base64", tab: new Base64FoldSettingTab(this.app, this.plugin) }
-    ].filter((t) => Boolean(t.tab));
-    for (const { id } of tabs) {
-      const button = navEl.createEl("button", { text: id });
-      button.style.padding = "5px 15px";
-      if (this.currentTab === id) {
-        button.style.backgroundColor = "var(--interactive-accent)";
-        button.style.color = "var(--text-on-accent)";
-      }
-      button.onclick = () => {
-        this.currentTab = id;
-        this.display();
-      };
-    }
-    const contentEl = containerEl.createEl("div", {
-      cls: "chisel-settings-content"
-    });
-    const active = tabs.find((t) => t.id === this.currentTab) || tabs[0];
-    active.tab.containerEl = contentEl;
-    active.tab.display();
   }
 };
 module.exports = ChiselPlugin;

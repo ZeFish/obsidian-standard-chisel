@@ -93,7 +93,7 @@ class LiveSettingTab extends PluginSettingTab {
   display() {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", { text: "Live Settings" });
+    new Setting(containerEl).setName("Live").setHeading();
 
     new Setting(containerEl).setName("Show ribbon icon").addToggle((toggle) =>
       toggle.setValue(this.settings.showRibbon).onChange(async (value) => {

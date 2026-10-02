@@ -271,7 +271,7 @@ class EinkSettingTab extends PluginSettingTab {
   display() {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", { text: "E-ink / Boox Settings" });
+    new Setting(containerEl).setName("E-ink and Boox").setHeading();
 
     const feature = this.getFeature();
     if (!feature) {
@@ -344,7 +344,7 @@ class EinkSettingTab extends PluginSettingTab {
           })
       );
 
-    containerEl.createEl("h3", { text: "Physical Buttons & Scrolling" });
+    new Setting(containerEl).setName("Physical buttons and scrolling").setHeading();
 
     new Setting(containerEl)
       .setName("Intercept volume keys")
@@ -430,7 +430,7 @@ class EinkSettingTab extends PluginSettingTab {
         })
       );
 
-    containerEl.createEl("h3", { text: "E-ink Typography & Layout" });
+    new Setting(containerEl).setName("Typography and layout").setHeading();
 
     new Setting(containerEl)
       .setName("E-ink font family")

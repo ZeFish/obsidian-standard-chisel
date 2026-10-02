@@ -219,7 +219,7 @@ class EchoSettingTab extends PluginSettingTab {
   display() {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", { text: "Echo" });
+    new Setting(containerEl).setName("Echo").setHeading();
 
     containerEl.createEl("p", {
       text: "Echo searches for specific tags within these log folders to generate dynamic feeds.",
@@ -247,7 +247,7 @@ class EchoSettingTab extends PluginSettingTab {
           }),
       );
 
-    containerEl.createEl("h3", { text: "Example usage" });
+    new Setting(containerEl).setName("Example usage").setHeading();
     const code = "```echo\ntag: work\nlimit: 5\nsort: desc\n```";
     containerEl.createEl("pre").createEl("code", { text: code });
   }

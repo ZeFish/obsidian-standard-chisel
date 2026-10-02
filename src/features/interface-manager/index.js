@@ -1,7 +1,7 @@
 "use strict";
 
 const { PluginSettingTab, Setting, Notice } = require("obsidian");
-const { descWithLinks } = require("../../constants.js");
+const { descWithLinks, DOCS } = require("../../constants.js");
 
 
 class InterfaceManagerFeature {
@@ -481,22 +481,22 @@ class InterfaceManagerSettingTab extends PluginSettingTab {
   display() {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", { text: "General" });
+    new Setting(containerEl).setName("Interface").setHeading();
 
     const desc = containerEl.createEl("p", {
       text: "Configure Zen mode and core interface enhancements. ",
       cls: "setting-item-description",
     });
     desc.createEl("a", {
-      text: "View General Preferences Manual",
-      href: "https://stnd.build/3-archives/obsidian-plugin",
+      text: "View the documentation",
+      href: DOCS.overview,
     });
 
     new Setting(containerEl)
       .setName("Zen")
       .setDesc(descWithLinks(
         "Hide vault name, file explorer header, status bar, and tab header when only one tab is open. § for the full list of hidden elements.",
-        [{ text: "See Zen mode guide", href: "https://stnd.build/3-archives/obsidian-plugin#8-general--zen" }]
+        [{ text: "See Zen mode guide", href: DOCS.interface }]
       ))
       .addToggle((t) =>
         t.setValue(this.settings.zen).onChange(async (v) => {
@@ -527,7 +527,7 @@ class InterfaceManagerSettingTab extends PluginSettingTab {
       .setName("Truncate long filenames")
       .setDesc(descWithLinks(
         "Cut long file and folder names in the explorer with an ellipsis (\u2026) instead of clipping them. § for visual examples.",
-        [{ text: "See General docs", href: "https://stnd.build/3-archives/obsidian-plugin#8-general--zen" }]
+        [{ text: "See the documentation", href: DOCS.interface }]
       ))
       .addToggle((t) =>
         t.setValue(this.settings.truncateFilenames).onChange(async (v) => {
@@ -551,7 +551,7 @@ class InterfaceManagerSettingTab extends PluginSettingTab {
       .setName("Default reading mode")
       .setDesc(descWithLinks(
         "Automatically open notes in reading mode when no mode is defined in frontmatter. Override per-note using § (`mode: read`, `mode: edit`, `mode: source`).",
-        [{ text: "frontmatter mode keys", href: "https://stnd.build/3-archives/obsidian-plugin#8-general--zen" }]
+        [{ text: "frontmatter mode keys", href: DOCS.interface }]
       ))
       .addToggle((t) =>
         t.setValue(this.settings.defaultReadingMode).onChange(async (v) => {
@@ -575,7 +575,7 @@ class InterfaceManagerSettingTab extends PluginSettingTab {
       .setName("Focus last line on mobile")
       .setDesc(descWithLinks(
         "Scroll to and focus the last line when opening a note in edit mode on mobile. § for the mobile workflow guide.",
-        [{ text: "See mobile tips", href: "https://stnd.build/3-archives/obsidian-plugin#8-general--zen" }]
+        [{ text: "See mobile tips", href: DOCS.interface }]
       ))
       .addToggle((t) =>
         t
@@ -595,7 +595,7 @@ class InterfaceManagerSettingTab extends PluginSettingTab {
       .setName("Auto-hide sidebars")
       .setDesc(descWithLinks(
         "Hide sidebars and the ribbon until you hover near the edge of the screen. § for the hover zone behavior.",
-        [{ text: "See auto-hide guide", href: "https://stnd.build/3-archives/obsidian-plugin#8-general--zen" }]
+        [{ text: "See auto-hide guide", href: DOCS.interface }]
       ))
       .addToggle((t) =>
         t.setValue(this.settings.autoHideSidebars).onChange(async (v) => {

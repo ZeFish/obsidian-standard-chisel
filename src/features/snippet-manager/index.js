@@ -1,7 +1,7 @@
 "use strict";
 
 const { PluginSettingTab, Setting, Notice, Platform } = require("obsidian");
-const { descWithLinks } = require("../../constants.js");
+const { descWithLinks, DOCS } = require("../../constants.js");
 
 
 const DEFAULT_SETTINGS = {
@@ -553,21 +553,21 @@ class SnippetManagerSettingTab extends PluginSettingTab {
   display() {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", { text: "Snippet Manager" });
+    new Setting(containerEl).setName("Snippets").setHeading();
     const desc = containerEl.createEl("p", {
       text: "Snippet Manager compiles and registers CSS stylesheets written directly inside your markdown notes. It parses CSS code blocks and hot-loads them in real time, bypassing Obsidian's hidden snippets directory. ",
       cls: "setting-item-description",
     });
     desc.createEl("a", {
-      text: "View Snippet Manager Manual",
-      href: "https://stnd.build/3-archives/obsidian-plugin#4-snippet-manager",
+      text: "View the documentation",
+      href: DOCS.snippets,
     });
 
     const enableSetting = new Setting(containerEl)
       .setName("Enable snippets")
       .setDesc(descWithLinks(
         "Master switch for compilation and injection of § into your workspace.",
-        [{ text: "note-based CSS stylesheets", href: "https://stnd.build/3-archives/obsidian-plugin#4-snippet-manager" }]
+        [{ text: "note-based CSS stylesheets", href: DOCS.snippets }]
       ));
     enableSetting.addToggle((toggle) =>
       toggle.setValue(this.settings.enabled).onChange(async (v) => {
@@ -597,7 +597,7 @@ class SnippetManagerSettingTab extends PluginSettingTab {
       .setName("Global snippet key")
       .setDesc(descWithLinks(
         "YAML key identifying notes that serve as vault-wide stylesheets (e.g. `snippet: true`). These styles are § to prevent a flash of unstyled content at startup.",
-        [{ text: "cached locally", href: "https://stnd.build/3-archives/obsidian-plugin#4-snippet-manager" }]
+        [{ text: "cached locally", href: DOCS.snippets }]
       ));
     globalKeySetting.addText((text) =>
       text.setValue(this.settings.globalKey).onChange(async (v) => {
@@ -611,7 +611,7 @@ class SnippetManagerSettingTab extends PluginSettingTab {
       .setName("Local snippet key")
       .setDesc(descWithLinks(
         "YAML key listing note names whose CSS loads only while that note is active (e.g. `snippets: [layout-card]`). § for contextual style patterns.",
-        [{ text: "See local snippets guide", href: "https://stnd.build/3-archives/obsidian-plugin#4-snippet-manager" }]
+        [{ text: "See local snippets guide", href: DOCS.snippets }]
       ));
     localKeySetting.addText((text) =>
       text.setValue(this.settings.localKey).onChange(async (v) => {
@@ -625,7 +625,7 @@ class SnippetManagerSettingTab extends PluginSettingTab {
       .setName("Always use 'cssclasses'")
       .setDesc(descWithLinks(
         "Scan the native Obsidian § property for matching note stylesheets to load contextually.",
-        [{ text: "cssclasses", href: "https://stnd.build/3-archives/obsidian-plugin#4-snippet-manager" }]
+        [{ text: "cssclasses", href: DOCS.snippets }]
       ));
     cssClassesSetting.addToggle((toggle) =>
       toggle
@@ -662,7 +662,7 @@ class SnippetManagerSettingTab extends PluginSettingTab {
       .setName("Rebuild global cache")
       .setDesc(descWithLinks(
         "Force a full rescan of all global snippet notes and rebuild the startup cache file. § if styles aren't loading.",
-        [{ text: "Troubleshoot cache issues", href: "https://stnd.build/3-archives/obsidian-plugin#4-snippet-manager" }]
+        [{ text: "Troubleshoot cache issues", href: DOCS.snippets }]
       ));
     rebuildSetting.addButton((btn) =>
       btn.setButtonText("Rebuild now").onClick(async () => {

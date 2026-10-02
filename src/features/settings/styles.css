@@ -1,0 +1,11 @@
+/* The plugin's settings page: a short row of group buttons, then the sections. */
+.chisel-settings-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--size-4-2, 8px);
+  margin-bottom: var(--size-4-4, 16px);
+}
+
+.chisel-settings-section + .chisel-settings-section {
+  margin-top: var(--size-4-6, 24px);
+}

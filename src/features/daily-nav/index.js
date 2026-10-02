@@ -359,16 +359,16 @@ class DailyNavSettingTab extends PluginSettingTab {
   display() {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", { text: "Navigation Notes Quotidiennes" });
+    new Setting(containerEl).setName("Daily notes navigation").setHeading();
 
     const desc = containerEl.createEl("p", {
-      text: "Affiche deux boutons flottants au bas de vos notes quotidiennes pour passer facilement à la note précédente ou suivante. ",
+      text: "Shows two floating buttons at the bottom of your daily notes to jump to the previous or next note. ",
       cls: "setting-item-description",
     });
 
     new Setting(containerEl)
-      .setName("Activer la navigation")
-      .setDesc("Affiche la barre de navigation (pill) au bas des notes quotidiennes.")
+      .setName("Enable navigation")
+      .setDesc("Shows the navigation bar at the bottom of daily notes.")
       .addToggle((toggle) =>
         toggle
           .setValue(this.settings.enabled)
@@ -380,16 +380,16 @@ class DailyNavSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("Mode de navigation")
+      .setName("Navigation mode")
       .setDesc(descWithLinks(
-        "Chronologique suit l'ordre des notes existantes dans votre coffre. Calendrier suit l'ordre des jours du calendrier.",
+        "Chronological follows the existing notes in your vault. Calendar steps through days one by one.",
         []
       ))
       .addDropdown((dropdown) =>
         dropdown
           .addOptions({
-            chronological: "Chronologique (notes existantes)",
-            calendar: "Calendrier (jour par jour)"
+            chronological: "Chronological (existing notes)",
+            calendar: "Calendar (day by day)"
           })
           .setValue(this.settings.navigationMode)
           .onChange(async (v) => {

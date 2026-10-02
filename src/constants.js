@@ -1,5 +1,17 @@
 "use strict";
 
+// Where each feature is documented: the sections of this plugin's README.
+const DOCS_BASE = "https://github.com/ZeFish/obsidian-standard-chisel#";
+const DOCS = {
+  overview: DOCS_BASE + "readme",
+  interface: DOCS_BASE + "interface-and-zen",
+  media: DOCS_BASE + "media-manager",
+  snippets: DOCS_BASE + "snippets-and-typography",
+  scrollMap: DOCS_BASE + "scroll-map",
+  systemTray: DOCS_BASE + "system-tray",
+  base64: DOCS_BASE + "base64-fold",
+};
+
 function descWithLinks(text, links = []) {
   const frag = document.createDocumentFragment();
   const parts = text.split("§");
@@ -18,6 +30,6 @@ function descWithLinks(text, links = []) {
   return frag;
 }
 
-module.exports = {
+module.exports = { DOCS,
   descWithLinks,
 };
