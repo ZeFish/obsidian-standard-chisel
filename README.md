@@ -1,6 +1,6 @@
 # Chisel — Artisan Toolkit for Obsidian
 
-[![Release](https://img.shields.io/github/v/release/ZeFish/Chisel?include_prereleases&style=flat-square)](https://github.com/ZeFish/Chisel/releases)
+[![Release](https://img.shields.io/github/v/release/ZeFish/obsidian-standard-chisel?include_prereleases&style=flat-square)](https://github.com/ZeFish/obsidian-standard-chisel/releases)
 [![Obsidian](https://img.shields.io/badge/Obsidian-v1.6.0+-blue?style=flat-square)](https://obsidian.md)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPLv3-yellow.svg?style=flat-square)](https://www.gnu.org/licenses/gpl-3.0)
 
@@ -53,11 +53,11 @@ Built from experience for e-ink tablets (Onyx Boox, Supernote, Kindle Scribe, re
 ### Option 2: Via Obsidian BRAT (Beta Reviewers Auto-update Tester)
 1. Install and enable the **BRAT** plugin from Community Plugins.
 2. In Obsidian, run the command `BRAT: Add a beta plugin for testing`.
-3. Enter `ZeFish/Chisel` and confirm.
+3. Enter `ZeFish/obsidian-standard-chisel` and confirm.
 
 ### Option 3: Manual Installation
-1. Download `main.js`, `manifest.json`, and `styles.css` from the latest release on the [Releases page](https://github.com/ZeFish/Chisel/releases).
-2. Create a folder named `chisel` in your vault's plugins folder: `<vault>/.obsidian/plugins/chisel/`.
+1. Download `main.js`, `manifest.json`, and `styles.css` from the latest release on the [Releases page](https://github.com/ZeFish/obsidian-standard-chisel/releases).
+2. Create a folder named `standard-chisel` in your vault's plugins folder: `<vault>/.obsidian/plugins/standard-chisel/`.
 3. Copy the downloaded files into that folder.
 4. Reload Obsidian and enable **Chisel** in **Settings** > **Community plugins**.
 
@@ -78,7 +78,7 @@ Chisel features a dedicated tabbed settings interface:
 
 ```bash
 # Clone the repository
-git clone https://github.com/ZeFish/Chisel.git
+git clone https://github.com/ZeFish/obsidian-standard-chisel.git
 cd Chisel
 
 # Install dependencies

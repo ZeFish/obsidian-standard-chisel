@@ -64,23 +64,25 @@ esbuild
         ".obsidian",
         "plugins",
       );
-    const dest = path.join(vaultPlugins, "chisel");
+    const dest = path.join(vaultPlugins, "standard-chisel");
     if (fs.existsSync(vaultPlugins)) {
       if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
 
-      // Migrate data.json & cache-global.css from atelier if chisel does not have them yet
-      const oldAtelierDir = path.join(vaultPlugins, "atelier");
-      if (fs.existsSync(oldAtelierDir)) {
-        const oldData = path.join(oldAtelierDir, "data.json");
-        const newData = path.join(dest, "data.json");
-        if (fs.existsSync(oldData) && !fs.existsSync(newData)) {
-          fs.copyFileSync(oldData, newData);
-          console.log("Migrated data.json from atelier to chisel");
-        }
-        const oldCache = path.join(oldAtelierDir, "cache-global.css");
-        const newCache = path.join(dest, "cache-global.css");
-        if (fs.existsSync(oldCache) && !fs.existsSync(newCache)) {
-          fs.copyFileSync(oldCache, newCache);
+      // Settings follow the plugin through its renames. This one was "atelier",
+      // then "chisel" (taken by another plugin in Obsidian's directory), now
+      // "standard-chisel": copy data.json and cache-global.css from the previous
+      // folder when the new one does not have them yet. Copies, never moves — the
+      // old folder stays until you delete it.
+      for (const legacy of ["chisel", "atelier"]) {
+        const oldDir = path.join(vaultPlugins, legacy);
+        if (!fs.existsSync(oldDir)) continue;
+        for (const file of ["data.json", "cache-global.css"]) {
+          const from = path.join(oldDir, file);
+          const to = path.join(dest, file);
+          if (fs.existsSync(from) && !fs.existsSync(to)) {
+            fs.copyFileSync(from, to);
+            console.log(`Migrated ${file} from ${legacy} to standard-chisel`);
+          }
         }
       }
 
