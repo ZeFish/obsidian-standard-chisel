@@ -1127,7 +1127,7 @@ var require_folder_suggest = __commonJS({
 var require_media_manager = __commonJS({
   "src/features/media-manager/index.js"(exports2, module2) {
     "use strict";
-    var { TFile, PluginSettingTab, Setting, Notice, TextComponent, ButtonComponent, Platform } = require("obsidian");
+    var { TFile, PluginSettingTab, Setting, Notice, TextComponent, ButtonComponent, Platform, MarkdownView } = require("obsidian");
     var { descWithLinks, DOCS } = require_constants();
     var VaultAuditFeature = class {
       constructor(app, plugin) {
@@ -1157,16 +1157,25 @@ var require_media_manager = __commonJS({
         }
         this.plugin.vaultAudit = this;
         this.lastPasteOrDropTime = 0;
+        this.lastActiveView = null;
+        this.lastActiveEditor = null;
+        this.lastSourcePath = null;
       }
       async load() {
         this.plugin.registerEvent(
-          this.app.workspace.on("editor-paste", () => {
+          this.app.workspace.on("editor-paste", (evt, editor, view) => {
             this.lastPasteOrDropTime = Date.now();
+            this.lastActiveView = view || null;
+            this.lastActiveEditor = editor || null;
+            this.lastSourcePath = view?.file?.path || null;
           })
         );
         this.plugin.registerEvent(
-          this.app.workspace.on("editor-drop", () => {
+          this.app.workspace.on("editor-drop", (evt, editor, view) => {
             this.lastPasteOrDropTime = Date.now();
+            this.lastActiveView = view || null;
+            this.lastActiveEditor = editor || null;
+            this.lastSourcePath = view?.file?.path || null;
           })
         );
         this.plugin.registerEvent(
@@ -1282,6 +1291,7 @@ var require_media_manager = __commonJS({
           await this.app.vault.createFolder(targetFolder);
         }
         const oldName = file.name;
+        const oldPath = file.path;
         let newName = file.name;
         if (!alreadyTimestamped) {
           const timestamp = this.getTimestamp(this.settings.timestampFormat);
@@ -1293,6 +1303,8 @@ var require_media_manager = __commonJS({
         try {
           await this.app.fileManager.renameFile(file, uniquePath);
           new Notice(`Managed media: ${file.name} -> ${uniquePath.split("/").pop()}`);
+          const renamedFile = this.app.vault.getAbstractFileByPath(uniquePath) || file;
+          await this.updateLinksForRenamedMedia(oldName, oldPath, renamedFile);
           if (this.settings.aggressiveLinkFix) {
             setTimeout(async () => {
               await this.fixUnresolvedLinksForRename(oldName, uniquePath);
@@ -1557,38 +1569,187 @@ Note cr\xE9\xE9e automatiquement pour r\xE9soudre un lien bris\xE9 depuis [[${ac
         }
         return resolvedCount;
       }
-      async fixUnresolvedLinksForRename(oldName, newPath) {
-        const newName = newPath.split("/").pop();
-        const unresolved = this.app.metadataCache.unresolvedLinks;
-        for (const [sourcePath, links] of Object.entries(unresolved)) {
-          let matchKey = null;
-          for (const link of Object.keys(links)) {
-            const linkClean = link.split("/").pop();
-            if (linkClean === oldName) {
-              matchKey = link;
-              break;
+      async updateLinksForRenamedMedia(oldName, oldPath, renamedFile) {
+        const updatedNotePaths = /* @__PURE__ */ new Set();
+        const leaves = this.app.workspace.getLeavesOfType("markdown");
+        for (const leaf of leaves) {
+          const view = leaf.view;
+          if (!view || !(view instanceof MarkdownView) || !view.editor || !view.file) {
+            continue;
+          }
+          const noteFile = view.file;
+          const editor = view.editor;
+          const didUpdate = this.replaceLinksInEditor(editor, noteFile, oldName, oldPath, renamedFile, view);
+          if (didUpdate) {
+            updatedNotePaths.add(noteFile.path);
+            if (typeof view.requestSave === "function") {
+              view.requestSave();
             }
           }
-          if (matchKey) {
+        }
+        if (this.lastActiveView && this.lastActiveView instanceof MarkdownView && this.lastActiveView.editor && this.lastActiveView.file && !updatedNotePaths.has(this.lastActiveView.file.path)) {
+          const didUpdate = this.replaceLinksInEditor(
+            this.lastActiveView.editor,
+            this.lastActiveView.file,
+            oldName,
+            oldPath,
+            renamedFile,
+            this.lastActiveView
+          );
+          if (didUpdate) {
+            updatedNotePaths.add(this.lastActiveView.file.path);
+            if (typeof this.lastActiveView.requestSave === "function") {
+              this.lastActiveView.requestSave();
+            }
+          }
+        }
+        if (this.lastSourcePath && !updatedNotePaths.has(this.lastSourcePath)) {
+          const sourceFile = this.app.vault.getAbstractFileByPath(this.lastSourcePath);
+          if (sourceFile && sourceFile instanceof TFile) {
+            const didUpdate = await this.replaceLinksInFileOnDisk(sourceFile, oldName, oldPath, renamedFile);
+            if (didUpdate) updatedNotePaths.add(sourceFile.path);
+          }
+        }
+        const unresolved = this.app.metadataCache?.unresolvedLinks || {};
+        for (const [sourcePath, links] of Object.entries(unresolved)) {
+          if (updatedNotePaths.has(sourcePath)) continue;
+          const hasMatch = Object.keys(links).some((link) => {
+            const clean = link.split("/").pop();
+            return clean === oldName || link === oldPath || link === oldName;
+          });
+          if (hasMatch) {
             const noteFile = this.app.vault.getAbstractFileByPath(sourcePath);
             if (noteFile && noteFile instanceof TFile) {
-              console.log(`[Standard] R\xE9paration automatique du lien vers ${oldName} dans ${sourcePath}`);
-              let content = await this.app.vault.read(noteFile);
-              const escapedLink = matchKey.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
-              const wikiRegex = new RegExp(`\\[\\[(${escapedLink})(\\|[^\\]]+)?\\]\\]`, "g");
-              content = content.replace(wikiRegex, (match, p1, p2) => {
-                return `[[${newName}${p2 || ""}]]`;
-              });
-              const urlEncodedLink = encodeURIComponent(matchKey).replace(/%2F/g, "/");
-              const escapedUrlLink = urlEncodedLink.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
-              const mdRegex = new RegExp(`\\[([^\\]]*)\\]\\((${escapedLink}|${escapedUrlLink})\\)`, "g");
-              content = content.replace(mdRegex, (match, p1, p2) => {
-                const encodedNewName = encodeURIComponent(newName).replace(/%2F/g, "/");
-                return `[${p1}](${encodedNewName})`;
-              });
-              await this.app.vault.modify(noteFile, content);
+              const didUpdate = await this.replaceLinksInFileOnDisk(noteFile, oldName, oldPath, renamedFile);
+              if (didUpdate) updatedNotePaths.add(noteFile.path);
             }
           }
+        }
+      }
+      replaceLinksInEditor(editor, noteFile, oldName, oldPath, renamedFile, view) {
+        const content = editor.getValue();
+        const generatedInfo = this.getNewLinkTarget(renamedFile, noteFile.path, renamedFile.name);
+        const matches = this.findLinkMatches(content, oldName, oldPath, generatedInfo);
+        if (matches.length === 0) {
+          return false;
+        }
+        matches.sort((a, b) => b.start - a.start);
+        const cursor = editor.getCursor();
+        let cursorOffset = editor.posToOffset(cursor);
+        for (const match of matches) {
+          const from = editor.offsetToPos(match.start);
+          const to = editor.offsetToPos(match.end);
+          const diff = match.replacement.length - (match.end - match.start);
+          if (cursorOffset >= match.end) {
+            cursorOffset += diff;
+          } else if (cursorOffset >= match.start && cursorOffset < match.end) {
+            cursorOffset = match.start + match.replacement.length;
+          }
+          editor.replaceRange(match.replacement, from, to);
+        }
+        editor.setCursor(editor.offsetToPos(cursorOffset));
+        return true;
+      }
+      async replaceLinksInFileOnDisk(noteFile, oldName, oldPath, renamedFile) {
+        try {
+          const content = await this.app.vault.read(noteFile);
+          const generatedInfo = this.getNewLinkTarget(renamedFile, noteFile.path, renamedFile.name);
+          const matches = this.findLinkMatches(content, oldName, oldPath, generatedInfo);
+          if (matches.length === 0) return false;
+          matches.sort((a, b) => b.start - a.start);
+          let newContent = content;
+          for (const match of matches) {
+            newContent = newContent.substring(0, match.start) + match.replacement + newContent.substring(match.end);
+          }
+          await this.app.vault.modify(noteFile, newContent);
+          return true;
+        } catch (e) {
+          console.error("[Standard] Erreur lors de la mise \xE0 jour du lien sur disque:", e);
+          return false;
+        }
+      }
+      getNewLinkTarget(renamedFile, sourceNotePath, fallbackName) {
+        try {
+          if (this.app.fileManager && typeof this.app.fileManager.generateMarkdownLink === "function") {
+            const generated = this.app.fileManager.generateMarkdownLink(renamedFile, sourceNotePath);
+            const wikiMatch = generated.match(/^\[\[(.*?)\]\]$/);
+            if (wikiMatch) {
+              return { isWiki: true, target: wikiMatch[1] };
+            }
+            const mdMatch = generated.match(/^\[.*?\]\((.*?)\)$/);
+            if (mdMatch) {
+              return { isWiki: false, target: mdMatch[1] };
+            }
+          }
+        } catch (e) {
+          console.error("[Standard] Erreur generateMarkdownLink:", e);
+        }
+        return { isWiki: true, target: fallbackName };
+      }
+      findLinkMatches(content, oldName, oldPath, generatedInfo) {
+        const matches = [];
+        const wikiRegex = /(!?)\[\[([^\]\n|]+)(\|[^\]\n]+)?\]\]/g;
+        let m;
+        while ((m = wikiRegex.exec(content)) !== null) {
+          const [fullMatch, prefix, rawTarget, suffix] = m;
+          let cleanTarget = rawTarget.trim();
+          let subpath = "";
+          const hashIdx = cleanTarget.indexOf("#");
+          if (hashIdx !== -1) {
+            subpath = cleanTarget.substring(hashIdx);
+            cleanTarget = cleanTarget.substring(0, hashIdx);
+          }
+          const decodedTarget = decodeURIComponent(cleanTarget);
+          const targetBase = cleanTarget.split("/").pop();
+          const decodedBase = decodedTarget.split("/").pop();
+          const isMatch = cleanTarget === oldName || targetBase === oldName || cleanTarget === oldPath || decodedTarget === oldName || decodedBase === oldName || decodedTarget === oldPath;
+          if (isMatch) {
+            const replacement = generatedInfo.isWiki ? `${prefix}[[${generatedInfo.target}${subpath}${suffix || ""}]]` : `${prefix}[${suffix ? suffix.slice(1) : ""}](${generatedInfo.target}${subpath})`;
+            matches.push({
+              start: m.index,
+              end: m.index + fullMatch.length,
+              replacement
+            });
+          }
+        }
+        const mdRegex = /(!?)\[([^\]\n]*)\]\(([^)\n]+)\)/g;
+        while ((m = mdRegex.exec(content)) !== null) {
+          const [fullMatch, prefix, alias, rawUrl] = m;
+          let targetUrl = rawUrl.trim();
+          let title = "";
+          const spaceIdx = targetUrl.indexOf(" ");
+          if (spaceIdx !== -1) {
+            title = targetUrl.substring(spaceIdx);
+            targetUrl = targetUrl.substring(0, spaceIdx);
+          }
+          if (targetUrl.startsWith("<") && targetUrl.endsWith(">")) {
+            targetUrl = targetUrl.slice(1, -1);
+          }
+          let subpath = "";
+          const hashIdx = targetUrl.indexOf("#");
+          if (hashIdx !== -1) {
+            subpath = targetUrl.substring(hashIdx);
+            targetUrl = targetUrl.substring(0, hashIdx);
+          }
+          const decoded = decodeURI(targetUrl);
+          const decodedBase = decoded.split("/").pop();
+          const urlBase = targetUrl.split("/").pop();
+          const isMatch = decoded === oldName || decodedBase === oldName || decoded === oldPath || targetUrl === oldName || urlBase === oldName;
+          if (isMatch) {
+            const replacement = generatedInfo.isWiki ? `${prefix}[[${generatedInfo.target}${subpath}${alias ? "|" + alias : ""}]]` : `${prefix}[${alias}](${generatedInfo.target}${subpath}${title})`;
+            matches.push({
+              start: m.index,
+              end: m.index + fullMatch.length,
+              replacement
+            });
+          }
+        }
+        return matches;
+      }
+      async fixUnresolvedLinksForRename(oldName, newPath) {
+        const renamedFile = this.app.vault.getAbstractFileByPath(newPath);
+        if (renamedFile && renamedFile instanceof TFile) {
+          await this.updateLinksForRenamedMedia(oldName, oldName, renamedFile);
         }
       }
     };

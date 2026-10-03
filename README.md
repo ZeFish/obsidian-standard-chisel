@@ -55,7 +55,7 @@ Write CSS inside a note and have it applied live, without the hidden snippets fo
 *Settings → Chisel → Writing*
 
 Tidies attachments as they arrive:
-- **Smart rename** turns names like `CleanShot 2026-09-20 at 11.23.45.png` into clean slugs, with a configurable timestamp format.
+- **Smart rename** turns names like `CleanShot 2026-09-20 at 11.23.45.png` into clean slugs, with a configurable timestamp format. Live editor links update immediately without losing cursor position, even when editing without moving the caret.
 - **Storage folder** routes media to a folder, relative to the note (for example `./assets` or `attachments/{note}`) or at the vault root.
 - **Only on paste or drop** limits it to media you actively paste or drop into a note, which avoids conflicts with Obsidian Sync.
 - **Enable on mobile devices** is off by default, to prevent sync collisions.
