@@ -1,10 +1,10 @@
 {
   "id": "standard-chisel",
   "name": "Standard Chisel",
-  "version": "2.0.7",
+  "version": "2.0.8",
   "minAppVersion": "1.6.0",
   "description": "Artisan toolkit for Obsidian: theme snippets, media management, Zen interface, e-ink optimization, and layout navigation.",
-  "author": "Francis Fontaine",
-  "authorUrl": "https://github.com/ZeFish",
+  "author": "Utopie",
+  "authorUrl": "https://utopie.studio",
   "isDesktopOnly": false
 }
