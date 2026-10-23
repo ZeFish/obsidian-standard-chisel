@@ -96,7 +96,7 @@ class SeedbedsFeature {
 
   isFileInFolder(filePath, folder) {
     if (!folder) return false;
-    const normFolder = folder.replace(/^\/+||\/+$/g, "").toLowerCase();
+    const normFolder = folder.replace(/^\/+|\/+$/g, "").toLowerCase();
     if (normFolder === "") return false;
     const lastSlash = filePath.lastIndexOf("/");
     const dirPath = lastSlash === -1 ? "" : filePath.substring(0, lastSlash);

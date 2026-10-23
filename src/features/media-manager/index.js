@@ -3,6 +3,26 @@
 const { TFile, PluginSettingTab, Setting, Notice, TextComponent, ButtonComponent, Platform, MarkdownView } = require("obsidian");
 const { descWithLinks, DOCS } = require("../../constants.js");
 
+const MEDIA_EXTENSIONS = new Set([
+  "png", "jpg", "jpeg", "gif", "webp", "svg", "avif", "bmp",
+  "mp4", "webm", "mov", "ogv",
+  "mp3", "wav", "m4a", "ogg", "flac",
+  "pdf"
+]);
+
+const BUILTIN_TIMESTAMP_PATTERNS = [
+  /^\d{6}_\d{4}_/,       // YYMMDD_HHmm_ (ex: 260619_0929_)
+  /^\d{4}_\d{4}_/,       // YYYY_MMDD_ (ex: 2019_0310_)
+  /^\d{4}_\d{2}_\d{2}_/, // YYYY_MM_DD_ (ex: 2019_03_10_)
+  /^\d{4}-\d{2}-\d{2}/,   // YYYY-MM-DD (ex: 2019-03-10)
+  /^\d{6}\s*-\s*/,       // YYMMDD - (ex: 240221 - )
+  /^\d{8}\s*-\s*/,       // YYYYMMDD - (ex: 20240221 - )
+  /^\d{6}_/,             // YYMMDD_ (ex: 240309_)
+  /^\d{8}_/,             // YYYYMMDD_ (ex: 20240309_)
+  /^\d{6}-\d{6}/,        // YYMMDD-HHMMSS
+  /^\d{13}/,             // Milliseconds timestamp (ex: 1552472446693)
+  /^(?:mvimg|img|screenshot|received|lrm_export)[-_\s]?\d+/i // Common photo/screenshot prefixes followed by numbers
+];
 
 class VaultAuditFeature {
   constructor(app, plugin) {
@@ -120,43 +140,26 @@ class VaultAuditFeature {
   }
 
   isMediaFile(file) {
-    const ext = file.extension.toLowerCase();
-    const mediaExtensions = [
-      "png", "jpg", "jpeg", "gif", "webp", "svg", "avif", "bmp",
-      "mp4", "webm", "mov", "ogv",
-      "mp3", "wav", "m4a", "ogg", "flac",
-      "pdf"
-    ];
-    return mediaExtensions.includes(ext);
+    return MEDIA_EXTENSIONS.has(file.extension.toLowerCase());
   }
 
   hasTimestamp(filename) {
     // 1. Check user-defined regex from settings
-    if (this.settings && this.settings.timestampRegex) {
-      try {
-        const userRegex = new RegExp(this.settings.timestampRegex);
-        if (userRegex.test(filename)) return true;
-      } catch (e) {
-        console.error("[Standard] Invalid timestampRegex:", e);
+    if (this.settings?.timestampRegex) {
+      if (this._cachedRegexStr !== this.settings.timestampRegex) {
+        this._cachedRegexStr = this.settings.timestampRegex;
+        try {
+          this._cachedUserRegex = new RegExp(this.settings.timestampRegex);
+        } catch (e) {
+          console.error("[Standard] Invalid timestampRegex:", e);
+          this._cachedUserRegex = null;
+        }
       }
+      if (this._cachedUserRegex && this._cachedUserRegex.test(filename)) return true;
     }
 
     // 2. Built-in robust timestamp patterns
-    const patterns = [
-      /^\d{6}_\d{4}_/,       // YYMMDD_HHmm_ (ex: 260619_0929_)
-      /^\d{4}_\d{4}_/,       // YYYY_MMDD_ (ex: 2019_0310_)
-      /^\d{4}_\d{2}_\d{2}_/, // YYYY_MM_DD_ (ex: 2019_03_10_)
-      /^\d{4}-\d{2}-\d{2}/,   // YYYY-MM-DD (ex: 2019-03-10)
-      /^\d{6}\s*-\s*/,       // YYMMDD - (ex: 240221 - )
-      /^\d{8}\s*-\s*/,       // YYYYMMDD - (ex: 20240221 - )
-      /^\d{6}_/,             // YYMMDD_ (ex: 240309_)
-      /^\d{8}_/,             // YYYYMMDD_ (ex: 20240309_)
-      /^\d{6}-\d{6}/,        // YYMMDD-HHMMSS
-      /^\d{13}/,             // Milliseconds timestamp (ex: 1552472446693)
-      /^(?:mvimg|img|screenshot|received|lrm_export)[-_\s]?\d+/i // Common photo/screenshot prefixes followed by numbers
-    ];
-
-    return patterns.some(pattern => pattern.test(filename));
+    return BUILTIN_TIMESTAMP_PATTERNS.some((pattern) => pattern.test(filename));
   }
 
   async processMediaRenameAndMove(file) {

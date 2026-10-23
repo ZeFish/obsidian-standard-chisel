@@ -162,9 +162,20 @@ class HollowModal extends Modal {
     const excludePaths = this.settings.excludePaths.map(normalizePath);
     const allFiles = this.app.vault.getMarkdownFiles();
     const hollow = [];
+    let count = 0;
     for (const file of allFiles) {
+      if (++count % 80 === 0) {
+        // Yield to event loop to keep the UI responsive during vault scan
+        await new Promise((r) => setTimeout(r, 0));
+      }
       if (isExcluded(file, excludePaths)) continue;
-      const content = await this.app.vault.read(file);
+      if (file.stat?.size === 0) {
+        hollow.push(file);
+        continue;
+      }
+      // Fast rejection: notes larger than 16KB are not hollow notes
+      if (file.stat?.size && file.stat.size > 16384) continue;
+      const content = await this.app.vault.cachedRead(file);
       if (isHollow(content)) hollow.push(file);
     }
     hollow.sort((a, b) => a.path.localeCompare(b.path));

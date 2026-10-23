@@ -90,6 +90,21 @@ class EchoFeature {
         }
       },
     );
+
+    this.plugin.registerEvent(
+      this.app.vault.on("delete", (file) => {
+        if (file?.path) this.parseCache.delete(file.path);
+      }),
+    );
+    this.plugin.registerEvent(
+      this.app.vault.on("rename", (file, oldPath) => {
+        if (oldPath) this.parseCache.delete(oldPath);
+      }),
+    );
+  }
+
+  async unload() {
+    this.parseCache.clear();
   }
 
   async renderEchoBlock(source, el, ctx) {
@@ -164,6 +179,10 @@ class EchoFeature {
     if (hit && hit.stamp === stamp) return hit.entries;
     const content = await this.app.vault.cachedRead(file);
     const entries = parseNote(content, date, file.path, separator);
+    if (this.parseCache.size >= 500) {
+      const oldestKey = this.parseCache.keys().next().value;
+      if (oldestKey) this.parseCache.delete(oldestKey);
+    }
     this.parseCache.set(file.path, { stamp, entries });
     return entries;
   }

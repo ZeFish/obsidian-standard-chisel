@@ -95,12 +95,34 @@ class DailyNavFeature {
     const key = `${format}|${folder}`;
     if (this.sorted && this.sorted.key === key) return this.sorted.list;
 
-    const files = this.app.vault.getMarkdownFiles();
+    const cleanFolder = (folder || "").replace(/^\/+|\/+$/g, "");
+    let files;
+    if (cleanFolder) {
+      const folderObj = this.app.vault.getFolderByPath(cleanFolder);
+      if (folderObj) {
+        files = [];
+        const stack = [folderObj];
+        while (stack.length > 0) {
+          const current = stack.pop();
+          for (const child of current.children || []) {
+            if (child.children) {
+              stack.push(child);
+            } else if (child.extension === "md") {
+              files.push(child);
+            }
+          }
+        }
+      }
+    }
+    if (!files) {
+      files = this.app.vault.getMarkdownFiles();
+    }
+
     const moment = window.moment;
     const dailyNotes = [];
 
     for (const file of files) {
-      if (folder && !file.path.startsWith(folder)) {
+      if (cleanFolder && !file.path.startsWith(cleanFolder + "/") && file.path !== cleanFolder) {
         continue;
       }
       const date = moment(file.basename, format, true);
@@ -124,6 +146,7 @@ class DailyNavFeature {
     }
 
     const { format, folder, template } = this.getDailyNotesConfig();
+    const cleanFolder = (folder || "").replace(/^\/+|\/+$/g, "");
     const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
     
     // Update or clean up each open Markdown leaf
@@ -134,7 +157,7 @@ class DailyNavFeature {
       const isCurrentViewActive = activeView && activeView.leaf === leaf;
       
       // Check if this file is a daily note
-      if (folder && !view.file.path.startsWith(folder)) {
+      if (cleanFolder && !view.file.path.startsWith(cleanFolder + "/")) {
         this.removeNavPill(view);
         return;
       }

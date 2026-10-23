@@ -52,7 +52,6 @@ class InterfaceManagerFeature {
     // of a view they had switched to by hand (task 114).
     this.plugin.registerEvent(
       this.app.metadataCache.on("changed", (file) => {
-        this.applySettings();
         if (file && file.path === this._pendingEnforceFile) {
           this._pendingEnforceFile = null;
           this.enforceReadingMode(true);

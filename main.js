@@ -265,6 +265,19 @@ var require_echo = __commonJS({
             }
           }
         );
+        this.plugin.registerEvent(
+          this.app.vault.on("delete", (file) => {
+            if (file?.path) this.parseCache.delete(file.path);
+          })
+        );
+        this.plugin.registerEvent(
+          this.app.vault.on("rename", (file, oldPath) => {
+            if (oldPath) this.parseCache.delete(oldPath);
+          })
+        );
+      }
+      async unload() {
+        this.parseCache.clear();
       }
       async renderEchoBlock(source, el, ctx) {
         const opts = parseBlockOptions(source);
@@ -320,6 +333,10 @@ var require_echo = __commonJS({
         if (hit && hit.stamp === stamp) return hit.entries;
         const content = await this.app.vault.cachedRead(file);
         const entries = parseNote(content, date, file.path, separator);
+        if (this.parseCache.size >= 500) {
+          const oldestKey = this.parseCache.keys().next().value;
+          if (oldestKey) this.parseCache.delete(oldestKey);
+        }
         this.parseCache.set(file.path, { stamp, entries });
         return entries;
       }
@@ -567,9 +584,18 @@ var require_hollow = __commonJS({
         const excludePaths = this.settings.excludePaths.map(normalizePath);
         const allFiles = this.app.vault.getMarkdownFiles();
         const hollow = [];
+        let count = 0;
         for (const file of allFiles) {
+          if (++count % 80 === 0) {
+            await new Promise((r) => setTimeout(r, 0));
+          }
           if (isExcluded(file, excludePaths)) continue;
-          const content = await this.app.vault.read(file);
+          if (file.stat?.size === 0) {
+            hollow.push(file);
+            continue;
+          }
+          if (file.stat?.size && file.stat.size > 16384) continue;
+          const content = await this.app.vault.cachedRead(file);
           if (isHollow(content)) hollow.push(file);
         }
         hollow.sort((a, b) => a.path.localeCompare(b.path));
@@ -1129,6 +1155,50 @@ var require_media_manager = __commonJS({
     "use strict";
     var { TFile, PluginSettingTab, Setting, Notice, TextComponent, ButtonComponent, Platform, MarkdownView } = require("obsidian");
     var { descWithLinks, DOCS } = require_constants();
+    var MEDIA_EXTENSIONS = /* @__PURE__ */ new Set([
+      "png",
+      "jpg",
+      "jpeg",
+      "gif",
+      "webp",
+      "svg",
+      "avif",
+      "bmp",
+      "mp4",
+      "webm",
+      "mov",
+      "ogv",
+      "mp3",
+      "wav",
+      "m4a",
+      "ogg",
+      "flac",
+      "pdf"
+    ]);
+    var BUILTIN_TIMESTAMP_PATTERNS = [
+      /^\d{6}_\d{4}_/,
+      // YYMMDD_HHmm_ (ex: 260619_0929_)
+      /^\d{4}_\d{4}_/,
+      // YYYY_MMDD_ (ex: 2019_0310_)
+      /^\d{4}_\d{2}_\d{2}_/,
+      // YYYY_MM_DD_ (ex: 2019_03_10_)
+      /^\d{4}-\d{2}-\d{2}/,
+      // YYYY-MM-DD (ex: 2019-03-10)
+      /^\d{6}\s*-\s*/,
+      // YYMMDD - (ex: 240221 - )
+      /^\d{8}\s*-\s*/,
+      // YYYYMMDD - (ex: 20240221 - )
+      /^\d{6}_/,
+      // YYMMDD_ (ex: 240309_)
+      /^\d{8}_/,
+      // YYYYMMDD_ (ex: 20240309_)
+      /^\d{6}-\d{6}/,
+      // YYMMDD-HHMMSS
+      /^\d{13}/,
+      // Milliseconds timestamp (ex: 1552472446693)
+      /^(?:mvimg|img|screenshot|received|lrm_export)[-_\s]?\d+/i
+      // Common photo/screenshot prefixes followed by numbers
+    ];
     var VaultAuditFeature = class {
       constructor(app, plugin) {
         this.app = app;
@@ -1221,63 +1291,22 @@ var require_media_manager = __commonJS({
         }, 1500);
       }
       isMediaFile(file) {
-        const ext = file.extension.toLowerCase();
-        const mediaExtensions = [
-          "png",
-          "jpg",
-          "jpeg",
-          "gif",
-          "webp",
-          "svg",
-          "avif",
-          "bmp",
-          "mp4",
-          "webm",
-          "mov",
-          "ogv",
-          "mp3",
-          "wav",
-          "m4a",
-          "ogg",
-          "flac",
-          "pdf"
-        ];
-        return mediaExtensions.includes(ext);
+        return MEDIA_EXTENSIONS.has(file.extension.toLowerCase());
       }
       hasTimestamp(filename) {
-        if (this.settings && this.settings.timestampRegex) {
-          try {
-            const userRegex = new RegExp(this.settings.timestampRegex);
-            if (userRegex.test(filename)) return true;
-          } catch (e) {
-            console.error("[Standard] Invalid timestampRegex:", e);
+        if (this.settings?.timestampRegex) {
+          if (this._cachedRegexStr !== this.settings.timestampRegex) {
+            this._cachedRegexStr = this.settings.timestampRegex;
+            try {
+              this._cachedUserRegex = new RegExp(this.settings.timestampRegex);
+            } catch (e) {
+              console.error("[Standard] Invalid timestampRegex:", e);
+              this._cachedUserRegex = null;
+            }
           }
+          if (this._cachedUserRegex && this._cachedUserRegex.test(filename)) return true;
         }
-        const patterns = [
-          /^\d{6}_\d{4}_/,
-          // YYMMDD_HHmm_ (ex: 260619_0929_)
-          /^\d{4}_\d{4}_/,
-          // YYYY_MMDD_ (ex: 2019_0310_)
-          /^\d{4}_\d{2}_\d{2}_/,
-          // YYYY_MM_DD_ (ex: 2019_03_10_)
-          /^\d{4}-\d{2}-\d{2}/,
-          // YYYY-MM-DD (ex: 2019-03-10)
-          /^\d{6}\s*-\s*/,
-          // YYMMDD - (ex: 240221 - )
-          /^\d{8}\s*-\s*/,
-          // YYYYMMDD - (ex: 20240221 - )
-          /^\d{6}_/,
-          // YYMMDD_ (ex: 240309_)
-          /^\d{8}_/,
-          // YYYYMMDD_ (ex: 20240309_)
-          /^\d{6}-\d{6}/,
-          // YYMMDD-HHMMSS
-          /^\d{13}/,
-          // Milliseconds timestamp (ex: 1552472446693)
-          /^(?:mvimg|img|screenshot|received|lrm_export)[-_\s]?\d+/i
-          // Common photo/screenshot prefixes followed by numbers
-        ];
-        return patterns.some((pattern) => pattern.test(filename));
+        return BUILTIN_TIMESTAMP_PATTERNS.some((pattern) => pattern.test(filename));
       }
       async processMediaRenameAndMove(file) {
         const targetFolder = this.settings.mediaFolder || "Kernel/attachments";
@@ -3135,11 +3164,32 @@ var require_daily_nav = __commonJS({
       getSortedDailyNotes(format, folder) {
         const key = `${format}|${folder}`;
         if (this.sorted && this.sorted.key === key) return this.sorted.list;
-        const files = this.app.vault.getMarkdownFiles();
+        const cleanFolder = (folder || "").replace(/^\/+|\/+$/g, "");
+        let files;
+        if (cleanFolder) {
+          const folderObj = this.app.vault.getFolderByPath(cleanFolder);
+          if (folderObj) {
+            files = [];
+            const stack = [folderObj];
+            while (stack.length > 0) {
+              const current = stack.pop();
+              for (const child of current.children || []) {
+                if (child.children) {
+                  stack.push(child);
+                } else if (child.extension === "md") {
+                  files.push(child);
+                }
+              }
+            }
+          }
+        }
+        if (!files) {
+          files = this.app.vault.getMarkdownFiles();
+        }
         const moment = window.moment;
         const dailyNotes = [];
         for (const file of files) {
-          if (folder && !file.path.startsWith(folder)) {
+          if (cleanFolder && !file.path.startsWith(cleanFolder + "/") && file.path !== cleanFolder) {
             continue;
           }
           const date = moment(file.basename, format, true);
@@ -3160,12 +3210,13 @@ var require_daily_nav = __commonJS({
           return;
         }
         const { format, folder, template } = this.getDailyNotesConfig();
+        const cleanFolder = (folder || "").replace(/^\/+|\/+$/g, "");
         const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
         this.app.workspace.getLeavesOfType("markdown").forEach((leaf) => {
           const view = leaf.view;
           if (!view || !view.file) return;
           const isCurrentViewActive = activeView && activeView.leaf === leaf;
-          if (folder && !view.file.path.startsWith(folder)) {
+          if (cleanFolder && !view.file.path.startsWith(cleanFolder + "/")) {
             this.removeNavPill(view);
             return;
           }
@@ -3454,7 +3505,7 @@ var require_seedbeds = __commonJS({
       }
       isFileInFolder(filePath, folder) {
         if (!folder) return false;
-        const normFolder = folder.replace(/^\/+||\/+$/g, "").toLowerCase();
+        const normFolder = folder.replace(/^\/+|\/+$/g, "").toLowerCase();
         if (normFolder === "") return false;
         const lastSlash = filePath.lastIndexOf("/");
         const dirPath = lastSlash === -1 ? "" : filePath.substring(0, lastSlash);
@@ -3697,7 +3748,6 @@ var require_interface_manager = __commonJS({
         );
         this.plugin.registerEvent(
           this.app.metadataCache.on("changed", (file) => {
-            this.applySettings();
             if (file && file.path === this._pendingEnforceFile) {
               this._pendingEnforceFile = null;
               this.enforceReadingMode(true);
